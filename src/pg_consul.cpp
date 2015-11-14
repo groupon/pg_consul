@@ -65,8 +65,10 @@ struct ConsulPeersFctx {
 };
 
 // ---- GUC variables
+
+// NOTE: this variable still needs to be defined even though the
+// authoritative value is contained within pgConsulAgent.
 static char* pg_consul_hostname_string = NULL;
-static std::int16_t pg_consul_port = 8500;
 ::consul::Peer pgConsulAgent;
 
 // ---- Function declarations
@@ -124,9 +126,7 @@ pg_consul_v1_leader(PG_FUNCTION_ARGS)
 {
   using json11::Json;
   try {
-    consul::Peer agent{pgConsulHostname, pg_consul_port};
-
-    auto r = cpr::Get(cpr::Url{::consul::Peer::LeaderUrl(agent)},
+    auto r = cpr::Get(cpr::Url{::consul::Peer::LeaderUrl(pgConsulAgent)},
                       cpr::Header{{"Connection", "close"}},
                       cpr::Timeout{1000});
     if (r.status_code != 200) {
@@ -204,10 +204,8 @@ pg_consul_v1_peers(PG_FUNCTION_ARGS) {
 
     // Populate our peers list via cpr call
     try {
-      consul::Peer agent{pgConsulHostname, pg_consul_port};
-
       // Make a call to get the current leader
-      auto r = cpr::Get(cpr::Url{::consul::Peer::LeaderUrl(agent)},
+      auto r = cpr::Get(cpr::Url{::consul::Peer::LeaderUrl(pgConsulAgent)},
                         cpr::Header{{"Connection", "close"}},
                         cpr::Timeout{1000});
       if (r.status_code != 200) {
@@ -224,7 +222,7 @@ pg_consul_v1_peers(PG_FUNCTION_ARGS) {
       }
 
       // Then query the current list of peers
-      r = cpr::Get(cpr::Url{::consul::Peer::PeersUrl(agent)},
+      r = cpr::Get(cpr::Url{::consul::Peer::PeersUrl(pgConsulAgent)},
                         cpr::Header{{"Connection", "close"}},
                         cpr::Timeout{1000});
       if (r.status_code != 200) {
@@ -338,7 +336,8 @@ namespace {
 
 static void
 pg_consul_hostname_assign_hook(const char *newHostname, void *extra) {
-  pgConsulHostname = newHostname;
+  pg_consul_hostname_string = const_cast<char*>(newHostname); // This is pretty dumb.
+  pgConsulAgent.setHost(newHostname);
 }
 
 static bool
@@ -370,7 +369,7 @@ pg_consul_hostname_check_hook(char **newHostname, void **extra, GucSource source
 
 static const char*
 pg_consul_hostname_show_hook(void) {
-  return pgConsulHostname.c_str();
+  return pgConsulAgent.host.c_str();
 }
 
 } // anon-namespace
