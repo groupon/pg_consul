@@ -62,7 +62,6 @@ struct Peer {
       return false;
     }
 
-    peer.leader = true;
     return true;
   }
 
