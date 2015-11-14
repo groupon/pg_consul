@@ -1,0 +1,48 @@
+{
+   "name": "pg_consul",
+   "abstract": "A PostgreSQL interface to consul",
+    "description": "Provides functions to access a consul cluster",
+   "version": "0.1.0",
+   "maintainer": [
+      "Sean Chittenden <seanc@groupon.com>"
+   ],
+   "license": "postgresql",
+   "provides": {
+      "pg_consul": {
+         "abstract": "A PostgreSQL interface to consul",
+         "file": "sql/pg_consul.sql",
+         "docfile": "doc/pg_consul.md",
+         "version": "0.1.0"
+      }
+   },
+   "prereqs": {
+      "runtime": {
+         "requires": {
+            "PostgreSQL": "9.4.0"
+         }
+      },
+      "test": {
+         "requires": {
+            "plpgsql": 0
+        }
+      }
+   },
+   "resources": {
+      "bugtracker": {
+         "web": "https://github.com/groupon/pg-consul/issues/"
+      },
+      "repository": {
+        "url":  "git://github.com/groupon/pg-consul.git",
+        "web":  "https://github.com/groupon/pg-consul/",
+        "type": "git"
+      }
+   },
+   "generated_by": "Sean Chittenden",
+   "meta-spec": {
+      "version": "1.0.0",
+      "url": "http://pgxn.org/meta/spec.txt"
+   },
+   "tags": [
+      "consul"
+   ]
+}

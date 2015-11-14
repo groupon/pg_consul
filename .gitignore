@@ -26,3 +26,6 @@
 *.exe
 *.out
 *.app
+/regression.diffs
+/.consul*-data/
+import-cpr.sh
