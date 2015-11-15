@@ -18,6 +18,7 @@ PGFILEDESC	= "pg_consul - SQL API to consul"
 TESTS		= $(wildcard test/sql/*.sql)
 REGRESS		= $(patsubst test/sql/%.sql,%,$(TESTS))
 REGRESS_OPTS	= --inputdir=test
+PG_REGRESS_DIFF_OPTS	= -u
 
 PG_CPPFLAGS+=-pedantic -Wall
 PG_CPPFLAGS+=-Wno-deprecated-register -Wno-unused-local-typedef
@@ -59,7 +60,7 @@ sql/$(EXTENSION)--$(EXTVERSION).sql: sql/$(EXTENSION).sql
 
 .PHONY: results
 results:
-	rsync -avP --delete results/ expected/
+	rsync -avP --include='*.out$' --delete results/ expected/
 
 dist:
 	git archive --format zip --prefix=$(EXTENSION)-$(EXTVERSION)/ -o $(EXTENSION)-$(EXTVERSION).zip HEAD
