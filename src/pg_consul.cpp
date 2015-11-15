@@ -50,7 +50,6 @@ PG_MODULE_MAGIC;
 // ---- Exported function decls that need to be visible after the .so is dlopen()'ed.
 void _PG_init(void);
 void _PG_fini(void);
-PG_FUNCTION_INFO_V1(pg_consul_v1_status);
 PG_FUNCTION_INFO_V1(pg_consul_v1_status_leader);
 PG_FUNCTION_INFO_V1(pg_consul_v1_status_peers);
 } // extern "C"
@@ -133,7 +132,7 @@ _PG_init(void)
 void
 _PG_fini(void)
 {
-	/* Uninstall hooks. */
+  // Uninstall hooks.
 }
 
 
@@ -335,18 +334,6 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
     fctx->~ConsulPeersFctx();
     SRF_RETURN_DONE(funcctx);
   }
-}
-
-/*
- * Obtain the status of the consul agent
- */
-Datum
-pg_consul_v1_status(PG_FUNCTION_ARGS)
-{
-  ereport(ERROR,
-          (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-           errmsg("pg_consul_status() not implemented")));
-  PG_RETURN_VOID();
 }
 
 } // extern "C"
