@@ -50,9 +50,9 @@ PG_MODULE_MAGIC;
 // ---- Exported function decls that need to be visible after the .so is dlopen()'ed.
 void _PG_init(void);
 void _PG_fini(void);
-PG_FUNCTION_INFO_V1(pg_consul_v1_leader);
-PG_FUNCTION_INFO_V1(pg_consul_v1_peers);
 PG_FUNCTION_INFO_V1(pg_consul_v1_status);
+PG_FUNCTION_INFO_V1(pg_consul_v1_status_leader);
+PG_FUNCTION_INFO_V1(pg_consul_v1_status_peers);
 } // extern "C"
 
 namespace {
@@ -64,6 +64,10 @@ struct ConsulPeersFctx {
   ::consul::Peers::PeersT::size_type iter = 0;
 };
 
+// ---- Constants
+static const char PG_CONSUL_AGENT_HOSTNAME_DEFAULT[] = "127.0.0.1";
+static const char PG_CONSUL_AGENT_HOSTNAME_LONG_DESCR[] = "Hostname of the consul agent this API client should use to talk with";
+static const char PG_CONSUL_AGENT_HOSTNAME_SHORT_DESCR[] = "Sets hostname of the consul agent to talk to.";
 // ---- GUC variables
 
 // NOTE: this variable still needs to be defined even though the
@@ -75,11 +79,6 @@ static char* pg_consul_agent_hostname_string = NULL;
 static void pg_consul_agent_hostname_assign_hook(const char *newvalue, void *extra);
 static bool pg_consul_agent_hostname_check_hook(char **newval, void **extra, GucSource source);
 static const char* pg_consul_agent_hostname_show_hook(void);
-
-// ---- Constants
-static const char PG_CONSUL_AGENT_HOSTNAME_DEFAULT[] = "127.0.0.1";
-static const char PG_CONSUL_AGENT_HOSTNAME_LONG_DESCR[] = "Hostname of the consul agent this API client should use to talk with";
-static const char PG_CONSUL_AGENT_HOSTNAME_SHORT_DESCR[] = "Sets hostname of the consul agent to talk to.";
 } // anon-namespace
 
 extern "C" {
@@ -104,7 +103,7 @@ _PG_init(void)
                              pg_consul_agent_hostname_assign_hook,
                              pg_consul_agent_hostname_show_hook);
 
-	EmitWarningsOnPlaceholders("consul");
+  EmitWarningsOnPlaceholders("consul");
 }
 
 
@@ -122,7 +121,7 @@ _PG_fini(void)
  * Obtain the current leader of the Raft quorum
  */
 Datum
-pg_consul_v1_leader(PG_FUNCTION_ARGS)
+pg_consul_v1_status_leader(PG_FUNCTION_ARGS)
 {
   using json11::Json;
   try {
@@ -156,7 +155,7 @@ pg_consul_v1_leader(PG_FUNCTION_ARGS)
 
 
 Datum
-pg_consul_v1_peers(PG_FUNCTION_ARGS) {
+pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
   MemoryContext oldcontext;
   void* fctx_p;
   TupleDesc tupdesc;

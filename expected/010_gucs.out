@@ -1,13 +1,13 @@
 -- Make sure the module is loaded.
 --
 -- FIXME(seanc@): this is broken.  Why do I have to call the function to
-SELECT consul_leader();
- consul_leader  
-----------------
 -- initialize the shared object?  WHy isn't _PG_init() called upon new
 -- connection from a client?  Something's broken here that I don't understand
 -- yet and the oversight isn't jumping out at me.  Moving on, but marking
 -- this as a bug.
+SELECT consul_status_leader();
+ consul_status_leader 
+----------------------
  127.0.0.1:8300
 (1 row)
 
