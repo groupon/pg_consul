@@ -47,7 +47,7 @@ MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
 ============================================================================
 
-cpr <https://github.com/whoshuu/cpr> is licensed under The MIT License.
+cpr <https://github.com/whoshuu/cpr>
 
 Copyright (c) 2015 Huu Nguyen
 
@@ -71,7 +71,7 @@ THE SOFTWARE.
 
 ============================================================================
 
-json11 <https://github.com/dropbox/json11> is licensed under the MIT license.
+json11 <https://github.com/dropbox/json11>
 
 Copyright (c) 2013 Dropbox, Inc.
 
@@ -95,7 +95,7 @@ THE SOFTWARE.
 
 ============================================================================
 
-boost <http://www.boost.org/> is licensed under the Boost Software License.
+boost <http://www.boost.org/>
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -120,3 +120,29 @@ SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
 FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
+
+============================================================================
+
+tclap <http://sourceforge.net/p/tclap>
+
+Copyright (c) 2003 Michael E. Smoot
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of the Software,
+and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

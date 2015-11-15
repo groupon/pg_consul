@@ -18,38 +18,50 @@ extern "C" {
 
 #include "cpr/cpr.h"
 #include "json11.hpp"
+#include "tclap/CmdLine.h"
 #include "consul.hpp"
 
+static constexpr const char* COMMAND_HELP_MSG =
+    u8R"msg(consul_leader displays the current leader of the consul cluster according to the target consul agent.)msg";
+static bool debugFlag = false;
 
 int
 main(int argc, char* argv[]) {
-  using json11::Json;
-  using consul::Peer;
+  ::consul::Peer agent;
 
-  Peer leader;
+  try {
+    TCLAP::CmdLine cmd(COMMAND_HELP_MSG, '=', "0.1");
 
-  switch (argc) {
-    case 3: // ${PROG} ${HOSTNAME} ${PORT}
-      if (!leader.setPort(argv[2])) {
-        std::cerr << "Invalid consul port specification: " << argv[2] << std::endl;
-        return EX_USAGE;
-      }
-      // fall through
-    case 2: // ${PROG} ${HOSTNAME}
-      if (!leader.setHost(argv[1])) {
-        std::cerr << "Invalid consul host: " << argv[1] << std::endl;
-        return EX_USAGE;
-      }
-      break;
-    case 1: // ${PROG}
-      break;
-    default:
-      std::cerr << "Too many arguments" << std::endl;
-      return EX_USAGE;
+    // Args are displayed LIFO
+    TCLAP::SwitchArg debugArg("d", "debug", "Print additional information with debugging", false);
+    cmd.add(debugArg);
+
+    TCLAP::ValueArg<consul::Peer::PortT> portArg("p", "port", "Port number of consul agent", false, agent.port, "port");
+    cmd.add(portArg);
+
+    TCLAP::ValueArg<consul::Peer::HostnameT> hostArg("H", "host", "Hostname of consul agent", false, agent.host.c_str(), "hostname");
+    cmd.add(hostArg);
+
+    cmd.parse(argc, argv);
+
+    if (debugArg.isSet()) {
+      debugFlag = debugArg.getValue();
+    }
+
+    if (hostArg.isSet()) {
+      agent.setHost(hostArg.getValue());
+    }
+
+    if (portArg.isSet()) {
+      agent.setPort(portArg.getValue());
+    }
+  } catch (TCLAP::ArgException &e)  {
+    std::cerr << "ERROR: " << e.error() << " for arg " << e.argId() << std::endl;
+    return EX_USAGE;
   }
 
   try {
-    auto r = cpr::Get(cpr::Url{::consul::Peer::LeaderUrl(leader)},
+    auto r = cpr::Get(cpr::Url{::consul::Peer::LeaderUrl(agent)},
                       cpr::Header{{"Connection", "close"}},
                       cpr::Timeout{1000});
     if (r.status_code != 200) {
@@ -57,20 +69,27 @@ main(int argc, char* argv[]) {
       return EX_TEMPFAIL;
     }
 
-    std::string err;
-    if (!::consul::Peer::InitFromJson(leader, r.text, err)) {
-      std::cerr << "Failed to load leader from JSON: " << err << std::endl;
-      return EX_PROTOCOL;
+    ::consul::Peer leader;
+    {
+      std::string err;
+      if (!::consul::Peer::InitFromJson(leader, r.text, err)) {
+        std::cerr << "Failed to load leader from JSON: " << err << std::endl;
+        return EX_PROTOCOL;
+      }
     }
-  } catch (std::exception & e) {
+
+    std::cout << "Leader: " << leader.str() << std::endl;
+    if (debugFlag) {
+      using json11::Json;
+      std::cout << "Host: " << leader.host << std::endl;
+      std::cout << "Port: " << leader.port << std::endl;
+      std::cout << "JSON1: " << json11::Json(leader).dump() << std::endl;
+      std::cout << "JSON2: " << leader.json() << std::endl;
+    }
+} catch (std::exception & e) {
     std::cerr << "cpr threw an exception: " << e.what() << std::endl;
     return EX_SOFTWARE;
   }
 
-  std::cout << "Host: " << leader.host << std::endl;
-  std::cout << "Port: " << leader.port << std::endl;
-  std::cout << "Peer: " << leader.str() << std::endl;
-  std::cout << "JSON1: " << json11::Json(leader).dump() << std::endl;
-  std::cout << "JSON2: " << leader.json() << std::endl;
   return EX_OK;
 }

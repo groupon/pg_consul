@@ -17,34 +17,49 @@ extern "C" {
 #include <vector>
 
 #include "cpr/cpr.h"
-
 #include "boost/algorithm/string.hpp"
 #include "boost/lexical_cast.hpp"
+#include "tclap/CmdLine.h"
+
 #include "consul/peers.hpp"
 
+static constexpr const char* COMMAND_HELP_MSG =
+    u8R"msg(consul_peers displays the current consul servers (peers) in the consul cluster according to the target consul agent.)msg";
+static bool debugFlag = false;
 
 int
 main(int argc, char* argv[]) {
   ::consul::Peer agent;
 
-  switch (argc) {
-    case 3: // ${PROG} ${HOSTNAME} ${PORT}
-      if (!agent.setPort(argv[2])) {
-        std::cerr << "Invalid consul port specification: " << argv[2] << std::endl;
-        return EX_USAGE;
-      }
-      // fall through
-    case 2: // ${PROG} ${HOSTNAME}
-      if (!agent.setHost(argv[1])) {
-        std::cerr << "Invalid consul host: " << argv[1] << std::endl;
-        return EX_USAGE;
-      }
-      break;
-    case 1: // ${PROG}
-      break;
-    default:
-      std::cerr << "Too many arguments" << std::endl;
-      return EX_USAGE;
+  try {
+    TCLAP::CmdLine cmd(COMMAND_HELP_MSG, '=', "0.1");
+
+    // Args are displayed LIFO
+    TCLAP::SwitchArg debugArg("d", "debug", "Print additional information with debugging", false);
+    cmd.add(debugArg);
+
+    TCLAP::ValueArg<consul::Peer::PortT> portArg("p", "port", "Port number of consul agent", false, agent.port, "port");
+    cmd.add(portArg);
+
+    TCLAP::ValueArg<consul::Peer::HostnameT> hostArg("H", "host", "Hostname of consul agent", false, agent.host.c_str(), "hostname");
+    cmd.add(hostArg);
+
+    cmd.parse(argc, argv);
+
+    if (debugArg.isSet()) {
+      debugFlag = debugArg.getValue();
+    }
+
+    if (hostArg.isSet()) {
+      agent.setHost(hostArg.getValue());
+    }
+
+    if (portArg.isSet()) {
+      agent.setPort(portArg.getValue());
+    }
+  } catch (TCLAP::ArgException &e)  {
+    std::cerr << "ERROR: " << e.error() << " for arg " << e.argId() << std::endl;
+    return EX_USAGE;
   }
 
   try {
@@ -56,11 +71,13 @@ main(int argc, char* argv[]) {
       return EX_TEMPFAIL;
     }
 
-    consul::Peers peers;
-    std::string err;
-    if (!::consul::Peers::InitFromJson(peers, r.text, err)) {
-      std::cerr << "Failed to load peers from JSON: " << err << std::endl;
-      return EX_PROTOCOL;
+    ::consul::Peers peers;
+    {
+      std::string err;
+      if (!::consul::Peers::InitFromJson(peers, r.text, err)) {
+        std::cerr << "Failed to load peers from JSON: " << err << std::endl;
+        return EX_PROTOCOL;
+      }
     }
 
     for (auto& peer : peers.peers) {
