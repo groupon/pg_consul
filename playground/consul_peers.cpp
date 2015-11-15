@@ -1,8 +1,8 @@
 /*-------------------------------------------------------------------------
  *
- * consul_peers.cpp	PostgreSQL interface for consul
+ * consul_peers.cpp	CLI interface for consul's status peers endpoint.
  *
- * Copyright (c) 2015, Sean Chittenden
+ * Copyright (c) 2015, Groupon, Inc.
  *
  *-------------------------------------------------------------------------
  */

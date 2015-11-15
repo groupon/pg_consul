@@ -1,8 +1,8 @@
 /*-------------------------------------------------------------------------
  *
- * consul_leader.cpp	PostgreSQL interface for consul
+ * consul_leader.cpp	CLI client for consul's status leader endpoint
  *
- * Copyright (c) 2015, Sean Chittenden
+ * Copyright (c) 2015, Groupon, Inc.
  *
  *-------------------------------------------------------------------------
  */
