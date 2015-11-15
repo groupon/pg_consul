@@ -17,8 +17,8 @@ PGFILEDESC	= "pg_consul - SQL API to consul"
 
 TESTS		= $(wildcard test/sql/*.sql)
 REGRESS		= $(patsubst test/sql/%.sql,%,$(TESTS))
-PG_REGRESS_DIFF_OPTS	= -u
 REGRESS_OPTS	= --inputdir=test --load-extension=pg_consul
+export PG_REGRESS_DIFF_OPTS=-u
 
 PG_CPPFLAGS+=-pedantic -Wall
 PG_CPPFLAGS+=-Wno-deprecated-register -Wno-unused-local-typedef
