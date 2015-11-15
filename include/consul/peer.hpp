@@ -112,7 +112,7 @@ struct Peer {
     return json11::Json{ ss.str() };
   }
 
-  std::string portStr() const {
+  std::string portStr() const noexcept {
     std::string str;
     try {
       str = ::boost::lexical_cast<std::string>(port);

@@ -68,17 +68,23 @@ struct ConsulPeersFctx {
 static const char PG_CONSUL_AGENT_HOSTNAME_DEFAULT[] = "127.0.0.1";
 static const char PG_CONSUL_AGENT_HOSTNAME_LONG_DESCR[] = "Hostname of the consul agent this API client should use to talk with";
 static const char PG_CONSUL_AGENT_HOSTNAME_SHORT_DESCR[] = "Sets hostname of the consul agent to talk to.";
+static const ::consul::Peer::PortT PG_CONSUL_AGENT_PORT_DEFAULT = 8500;
+static const char PG_CONSUL_AGENT_PORT_LONG_DESCR[] = "Port number of the consul agent this API client should use to talk with";
+static const char PG_CONSUL_AGENT_PORT_SHORT_DESCR[] = "Port number used by the agent for consul RPC requests.";
+
 // ---- GUC variables
 
 // NOTE: this variable still needs to be defined even though the
 // authoritative value is contained within pgConsulAgent.
 static char* pg_consul_agent_hostname_string = NULL;
+static int pg_consul_agent_port = PG_CONSUL_AGENT_PORT_DEFAULT;
 ::consul::Peer pgConsulAgent;
 
 // ---- Function declarations
 static void pg_consul_agent_hostname_assign_hook(const char *newvalue, void *extra);
 static bool pg_consul_agent_hostname_check_hook(char **newval, void **extra, GucSource source);
 static const char* pg_consul_agent_hostname_show_hook(void);
+static void pg_consul_agent_port_assign_hook(int newvalue, void *extra);
 } // anon-namespace
 
 extern "C" {
@@ -102,6 +108,20 @@ _PG_init(void)
                              pg_consul_agent_hostname_check_hook,
                              pg_consul_agent_hostname_assign_hook,
                              pg_consul_agent_hostname_show_hook);
+
+  DefineCustomIntVariable("consul.agent_port",
+                          PG_CONSUL_AGENT_PORT_SHORT_DESCR,
+                          PG_CONSUL_AGENT_PORT_LONG_DESCR,
+                          &pg_consul_agent_port,
+                          PG_CONSUL_AGENT_PORT_DEFAULT,
+                          1024,  // Min port == 1024
+                          65535, // Max port == 65536 - 1
+                          PGC_USERSET,
+                          GUC_LIST_INPUT,
+                          nullptr,
+                          pg_consul_agent_port_assign_hook,
+                          nullptr
+                          );
 
   EmitWarningsOnPlaceholders("consul");
 }
@@ -369,6 +389,12 @@ pg_consul_agent_hostname_check_hook(char **newHostname, void **extra, GucSource 
 static const char*
 pg_consul_agent_hostname_show_hook(void) {
   return pgConsulAgent.host.c_str();
+}
+
+static void
+pg_consul_agent_port_assign_hook(const int newPort, void *extra) {
+  pg_consul_agent_port = static_cast<std::uint16_t>(newPort);
+  pgConsulAgent.setPort(newPort);
 }
 
 } // anon-namespace

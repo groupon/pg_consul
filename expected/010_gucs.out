@@ -18,12 +18,25 @@ SHOW consul.agent_hostname;
  127.0.0.1
 (1 row)
 
+SHOW consul.agent_port;
+ consul.agent_port 
+-------------------
+ 8500
+(1 row)
+
 -- Set the agent hostname to something valid according to RFC791.
 SET consul.agent_hostname = '127.0.0.2';
+SET consul.agent_port = '18500';
 SHOW consul.agent_hostname;
  consul.agent_hostname 
 -----------------------
  127.0.0.2
+(1 row)
+
+SHOW consul.agent_port;
+ consul.agent_port 
+-------------------
+ 18500
 (1 row)
 
 -- Set the agent's hostname to something valid according to RFC1123.
@@ -37,17 +50,34 @@ SHOW consul.agent_hostname;
 -- Test agent hostname error handling
 SET consul.agent_hostname = '127.0.0..1';
 ERROR:  invalid value for parameter "consul.agent_hostname": "127.0.0..1"
+SET consul.agent_port = '1023';  -- Too small
+ERROR:  1023 is outside the valid range for parameter "consul.agent_port" (1024 .. 65535)
+SET consul.agent_port = '65536'; -- Too large
+ERROR:  65536 is outside the valid range for parameter "consul.agent_port" (1024 .. 65535)
 SHOW consul.agent_hostname;
  consul.agent_hostname 
 -----------------------
  localhost.localdomain
 (1 row)
 
+SHOW consul.agent_port;
+ consul.agent_port 
+-------------------
+ 18500
+(1 row)
+
 -- Return agent to localhost
 SET consul.agent_hostname = '127.0.0.1';
+SET consul.agent_port = '8500';
 SHOW consul.agent_hostname;
  consul.agent_hostname 
 -----------------------
  127.0.0.1
+(1 row)
+
+SHOW consul.agent_port;
+ consul.agent_port 
+-------------------
+ 8500
 (1 row)
 

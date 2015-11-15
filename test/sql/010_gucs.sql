@@ -9,10 +9,13 @@ SELECT consul_status_leader();
 
 -- Make sure extension parameters are present
 SHOW consul.agent_hostname;
+SHOW consul.agent_port;
 
 -- Set the agent hostname to something valid according to RFC791.
 SET consul.agent_hostname = '127.0.0.2';
+SET consul.agent_port = '18500';
 SHOW consul.agent_hostname;
+SHOW consul.agent_port;
 
 -- Set the agent's hostname to something valid according to RFC1123.
 SET consul.agent_hostname = 'localhost.localdomain';
@@ -20,8 +23,13 @@ SHOW consul.agent_hostname;
 
 -- Test agent hostname error handling
 SET consul.agent_hostname = '127.0.0..1';
+SET consul.agent_port = '1023';  -- Too small
+SET consul.agent_port = '65536'; -- Too large
 SHOW consul.agent_hostname;
+SHOW consul.agent_port;
 
 -- Return agent to localhost
 SET consul.agent_hostname = '127.0.0.1';
+SET consul.agent_port = '8500';
 SHOW consul.agent_hostname;
+SHOW consul.agent_port;
