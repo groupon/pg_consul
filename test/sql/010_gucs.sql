@@ -1,9 +1,10 @@
 -- Make sure the module is loaded.
+--
 -- FIXME(seanc@): this is broken.  Why do I have to call the function to
--- initialize the shared object?  Something's broken here that I don't
--- understand yet and the oversight isn't jumping out at me.  Moving on, but
--- marking this as a bug.
-SELECT consul_leader();
+-- initialize the shared object?  WHy isn't _PG_init() called upon new
+-- connection from a client?  Something's broken here that I don't understand
+-- yet and the oversight isn't jumping out at me.  Moving on, but marking
+-- this as a bug.
 
 -- Make sure extension parameters are present
 SHOW consul.agent_hostname;
