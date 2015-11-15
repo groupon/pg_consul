@@ -68,18 +68,18 @@ struct ConsulPeersFctx {
 
 // NOTE: this variable still needs to be defined even though the
 // authoritative value is contained within pgConsulAgent.
-static char* pg_consul_hostname_string = NULL;
+static char* pg_consul_agent_hostname_string = NULL;
 ::consul::Peer pgConsulAgent;
 
 // ---- Function declarations
-static void pg_consul_hostname_assign_hook(const char *newvalue, void *extra);
-static bool pg_consul_hostname_check_hook(char **newval, void **extra, GucSource source);
-static const char* pg_consul_hostname_show_hook(void);
+static void pg_consul_agent_hostname_assign_hook(const char *newvalue, void *extra);
+static bool pg_consul_agent_hostname_check_hook(char **newval, void **extra, GucSource source);
+static const char* pg_consul_agent_hostname_show_hook(void);
 
 // ---- Constants
-static const char PG_CONSUL_HOSTNAME_DEFAULT[] = "127.0.0.1";
-static const char PG_CONSUL_HOSTNAME_LONG_DESCR[] = "Hostname of the consul agent this API client should use to talk with";
-static const char PG_CONSUL_HOSTNAME_SHORT_DESCR[] = "Sets hostname of the consul agent to talk to.";
+static const char PG_CONSUL_AGENT_HOSTNAME_DEFAULT[] = "127.0.0.1";
+static const char PG_CONSUL_AGENT_HOSTNAME_LONG_DESCR[] = "Hostname of the consul agent this API client should use to talk with";
+static const char PG_CONSUL_AGENT_HOSTNAME_SHORT_DESCR[] = "Sets hostname of the consul agent to talk to.";
 } // anon-namespace
 
 extern "C" {
@@ -93,18 +93,18 @@ _PG_init(void)
   /*
    * Define (or redefine) custom GUC variables.
    */
-  DefineCustomStringVariable("pg_consul.hostname",
-                             PG_CONSUL_HOSTNAME_SHORT_DESCR,
-                             PG_CONSUL_HOSTNAME_LONG_DESCR,
-                             &pg_consul_hostname_string,
-                             PG_CONSUL_HOSTNAME_DEFAULT,
+  DefineCustomStringVariable("consul.agent_hostname",
+                             PG_CONSUL_AGENT_HOSTNAME_SHORT_DESCR,
+                             PG_CONSUL_AGENT_HOSTNAME_LONG_DESCR,
+                             &pg_consul_agent_hostname_string,
+                             PG_CONSUL_AGENT_HOSTNAME_DEFAULT,
                              PGC_USERSET,
                              GUC_LIST_INPUT,
-                             pg_consul_hostname_check_hook,
-                             pg_consul_hostname_assign_hook,
-                             pg_consul_hostname_show_hook);
+                             pg_consul_agent_hostname_check_hook,
+                             pg_consul_agent_hostname_assign_hook,
+                             pg_consul_agent_hostname_show_hook);
 
-	EmitWarningsOnPlaceholders("pg_consul");
+	EmitWarningsOnPlaceholders("consul");
 }
 
 
@@ -335,13 +335,13 @@ pg_consul_v1_status(PG_FUNCTION_ARGS)
 namespace {
 
 static void
-pg_consul_hostname_assign_hook(const char *newHostname, void *extra) {
-  pg_consul_hostname_string = const_cast<char*>(newHostname); // This is pretty dumb.
+pg_consul_agent_hostname_assign_hook(const char *newHostname, void *extra) {
+  pg_consul_agent_hostname_string = const_cast<char*>(newHostname); // This is pretty dumb.
   pgConsulAgent.setHost(newHostname);
 }
 
 static bool
-pg_consul_hostname_check_hook(char **newHostname, void **extra, GucSource source) {
+pg_consul_agent_hostname_check_hook(char **newHostname, void **extra, GucSource source) {
   if (newHostname == nullptr || *newHostname == nullptr)
     return false;
 
@@ -368,7 +368,7 @@ pg_consul_hostname_check_hook(char **newHostname, void **extra, GucSource source
 }
 
 static const char*
-pg_consul_hostname_show_hook(void) {
+pg_consul_agent_hostname_show_hook(void) {
   return pgConsulAgent.host.c_str();
 }
 
