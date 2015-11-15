@@ -10,7 +10,7 @@
 #include "json11.hpp"
 
 namespace consul {
-struct Peer {
+struct Peer final {
   using HostnameT = std::string;
   using PortT = std::uint16_t;
   const PortT DEFAULT_PORT = 8500;
