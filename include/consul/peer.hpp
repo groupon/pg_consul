@@ -11,17 +11,19 @@
 
 namespace consul {
 struct Peer {
-  const std::int16_t DEFAULT_PORT = 8500;
+  using HostnameT = std::string;
+  using PortT = std::uint16_t;
+  const PortT DEFAULT_PORT = 8500;
   static constexpr const char* DEFAULT_HOST = "127.0.0.1";
 
-  std::string host = DEFAULT_HOST;
-  std::int16_t port = DEFAULT_PORT;
+  HostnameT host = DEFAULT_HOST;
+  PortT port = DEFAULT_PORT;
   bool leader = false;
 
   Peer() : host{DEFAULT_HOST}, port{DEFAULT_PORT} {}
-  Peer(std::string host_) : host{host_}, port{DEFAULT_PORT} {}
-  Peer(std::int16_t port_) : host{DEFAULT_HOST}, port{port_} {}
-  Peer(std::string host_, std::int16_t port_) : host{host_}, port{port_} {}
+  Peer(HostnameT host_) : host{host_}, port{DEFAULT_PORT} {}
+  Peer(PortT port_) : host{DEFAULT_HOST}, port{port_} {}
+  Peer(HostnameT host_, PortT port_) : host{host_}, port{port_} {}
 
   static bool InitFromJson(Peer& peer, const json11::Json& json, std::string& err) {
     if (!json.is_string()) {
@@ -126,12 +128,17 @@ struct Peer {
     return ss.str();
   }
 
-  bool setHost(const std::string host_) {
+  bool setHost(const HostnameT host_) noexcept {
     host = host_;
     return true;
   }
 
-  bool setPort(const std::string port_) {
+  bool setPort(const PortT port_) noexcept {
+    port = port_;
+    return true;
+  }
+
+  bool setPort(const std::string port_) noexcept {
     try {
       port = ::boost::lexical_cast<int>(port_);
       return true;
@@ -142,7 +149,8 @@ struct Peer {
 };
 
 
-bool operator==(const Peer& a, const Peer& b) {
+bool
+operator==(const Peer& a, const Peer& b) noexcept {
   return (a.host == b.host && a.port == b.port);
 }
 
