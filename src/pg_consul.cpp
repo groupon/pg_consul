@@ -64,12 +64,12 @@ struct ConsulPeersFctx {
 };
 
 // ---- Constants
-static const char PG_CONSUL_AGENT_HOSTNAME_DEFAULT[] = "127.0.0.1";
-static const char PG_CONSUL_AGENT_HOSTNAME_LONG_DESCR[] = "Hostname of the consul agent this API client should use to talk with";
-static const char PG_CONSUL_AGENT_HOSTNAME_SHORT_DESCR[] = "Sets hostname of the consul agent to talk to.";
-static const char PG_CONSUL_AGENT_PORT_LONG_DESCR[] = "Port number of the consul agent this API client should use to talk with";
-static const char PG_CONSUL_AGENT_PORT_SHORT_DESCR[] = "Port number used by the agent for consul RPC requests.";
+static const constexpr char PG_CONSUL_AGENT_HOSTNAME_DEFAULT[] = "127.0.0.1";
+static const constexpr char PG_CONSUL_AGENT_HOSTNAME_LONG_DESCR[] = "Hostname of the consul agent this API client should use to talk with";
+static const constexpr char PG_CONSUL_AGENT_HOSTNAME_SHORT_DESCR[] = "Sets hostname of the consul agent to talk to.";
 static const constexpr ::consul::Agent::PortT PG_CONSUL_AGENT_PORT_DEFAULT = 8500;
+static const constexpr char PG_CONSUL_AGENT_PORT_LONG_DESCR[] = "Port number of the consul agent this API client should use to talk with";
+static const constexpr char PG_CONSUL_AGENT_PORT_SHORT_DESCR[] = "Port number used by the agent for consul RPC requests.";
 
 // ---- GUC variables
 
