@@ -128,7 +128,7 @@ struct Peer final {
 
   bool setPort(const std::string port_) noexcept {
     try {
-      port = ::boost::lexical_cast<int>(port_);
+      port = ::boost::lexical_cast<PortT>(port_);
       return true;
     } catch(const ::boost::bad_lexical_cast &) {
       return false;
