@@ -27,7 +27,7 @@ static bool debugFlag = false;
 
 int
 main(int argc, char* argv[]) {
-  ::consul::Peer agent;
+  ::consul::Agent agent;
 
   try {
     TCLAP::CmdLine cmd(COMMAND_HELP_MSG, '=', "0.1");
@@ -36,10 +36,10 @@ main(int argc, char* argv[]) {
     TCLAP::SwitchArg debugArg("d", "debug", "Print additional information with debugging", false);
     cmd.add(debugArg);
 
-    TCLAP::ValueArg<consul::Peer::PortT> portArg("p", "port", "Port number of consul agent", false, agent.port, "port");
+    TCLAP::ValueArg<consul::Agent::PortT> portArg("p", "port", "Port number of consul agent", false, agent.port(), "port");
     cmd.add(portArg);
 
-    TCLAP::ValueArg<consul::Peer::HostnameT> hostArg("H", "host", "Hostname of consul agent", false, agent.host.c_str(), "hostname");
+    TCLAP::ValueArg<consul::Agent::HostnameT> hostArg("H", "host", "Hostname of consul agent", false, agent.host().c_str(), "hostname");
     cmd.add(hostArg);
 
     cmd.parse(argc, argv);
@@ -61,7 +61,7 @@ main(int argc, char* argv[]) {
   }
 
   try {
-    auto r = cpr::Get(cpr::Url{::consul::Peer::LeaderUrl(agent)},
+    auto r = cpr::Get(cpr::Url{agent.statusLeaderUrl()},
                       cpr::Header{{"Connection", "close"}},
                       cpr::Timeout{1000});
     if (r.status_code != 200) {
@@ -76,6 +76,10 @@ main(int argc, char* argv[]) {
         std::cerr << "Failed to load leader from JSON: " << err << std::endl;
         return EX_PROTOCOL;
       }
+
+      // This is racy, but since we fetched from the statusLeaderUrl(), we
+      // can make an assumption about the status of this particular Peer.
+      leader.leader = true;
     }
 
     std::cout << "Leader: " << leader.str() << std::endl;

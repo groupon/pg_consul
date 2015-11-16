@@ -17,10 +17,9 @@ extern "C" {
 #include <vector>
 
 #include "cpr/cpr.h"
-#include "boost/algorithm/string.hpp"
-#include "boost/lexical_cast.hpp"
 #include "tclap/CmdLine.h"
 
+#include "consul/agent.hpp"
 #include "consul/peers.hpp"
 
 static constexpr const char* COMMAND_HELP_MSG =
@@ -29,7 +28,7 @@ static bool debugFlag = false;
 
 int
 main(int argc, char* argv[]) {
-  ::consul::Peer agent;
+  ::consul::Agent agent;
 
   try {
     TCLAP::CmdLine cmd(COMMAND_HELP_MSG, '=', "0.1");
@@ -38,10 +37,10 @@ main(int argc, char* argv[]) {
     TCLAP::SwitchArg debugArg("d", "debug", "Print additional information with debugging", false);
     cmd.add(debugArg);
 
-    TCLAP::ValueArg<consul::Peer::PortT> portArg("p", "port", "Port number of consul agent", false, agent.port, "port");
+    TCLAP::ValueArg<consul::Agent::PortT> portArg("p", "port", "Port number of consul agent", false, agent.port(), "port");
     cmd.add(portArg);
 
-    TCLAP::ValueArg<consul::Peer::HostnameT> hostArg("H", "host", "Hostname of consul agent", false, agent.host.c_str(), "hostname");
+    TCLAP::ValueArg<consul::Agent::HostnameT> hostArg("H", "host", "Hostname of consul agent", false, agent.host().c_str(), "hostname");
     cmd.add(hostArg);
 
     cmd.parse(argc, argv);
@@ -63,7 +62,7 @@ main(int argc, char* argv[]) {
   }
 
   try {
-    auto r = cpr::Get(cpr::Url{consul::Peer::PeersUrl(agent)},
+    auto r = cpr::Get(cpr::Url{agent.statusPeersUrl()},
                       cpr::Header{{"Connection", "close"}},
                       cpr::Timeout{1000});
     if (r.status_code != 200) {

@@ -67,9 +67,9 @@ struct ConsulPeersFctx {
 static const char PG_CONSUL_AGENT_HOSTNAME_DEFAULT[] = "127.0.0.1";
 static const char PG_CONSUL_AGENT_HOSTNAME_LONG_DESCR[] = "Hostname of the consul agent this API client should use to talk with";
 static const char PG_CONSUL_AGENT_HOSTNAME_SHORT_DESCR[] = "Sets hostname of the consul agent to talk to.";
-static const ::consul::Peer::PortT PG_CONSUL_AGENT_PORT_DEFAULT = 8500;
 static const char PG_CONSUL_AGENT_PORT_LONG_DESCR[] = "Port number of the consul agent this API client should use to talk with";
 static const char PG_CONSUL_AGENT_PORT_SHORT_DESCR[] = "Port number used by the agent for consul RPC requests.";
+static const constexpr ::consul::Agent::PortT PG_CONSUL_AGENT_PORT_DEFAULT = 8500;
 
 // ---- GUC variables
 
@@ -77,7 +77,7 @@ static const char PG_CONSUL_AGENT_PORT_SHORT_DESCR[] = "Port number used by the 
 // authoritative value is contained within pgConsulAgent.
 static char* pg_consul_agent_hostname_string = NULL;
 static int pg_consul_agent_port = PG_CONSUL_AGENT_PORT_DEFAULT;
-::consul::Peer pgConsulAgent;
+::consul::Agent pgConsulAgent;
 
 // ---- Function declarations
 static void pg_consul_agent_hostname_assign_hook(const char *newvalue, void *extra);
@@ -143,8 +143,9 @@ Datum
 pg_consul_v1_status_leader(PG_FUNCTION_ARGS)
 {
   using json11::Json;
+
   try {
-    auto r = cpr::Get(cpr::Url{::consul::Peer::LeaderUrl(pgConsulAgent)},
+    auto r = cpr::Get(cpr::Url{pgConsulAgent.statusLeaderUrl()},
                       cpr::Header{{"Connection", "close"}},
                       cpr::Timeout{1000});
     if (r.status_code != 200) {
@@ -223,7 +224,7 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
     // Populate our peers list via cpr call
     try {
       // Make a call to get the current leader
-      auto r = cpr::Get(cpr::Url{::consul::Peer::LeaderUrl(pgConsulAgent)},
+      auto r = cpr::Get(cpr::Url{pgConsulAgent.statusLeaderUrl()},
                         cpr::Header{{"Connection", "close"}},
                         cpr::Timeout{1000});
       if (r.status_code != 200) {
@@ -240,7 +241,7 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
       }
 
       // Then query the current list of peers
-      r = cpr::Get(cpr::Url{::consul::Peer::PeersUrl(pgConsulAgent)},
+      r = cpr::Get(cpr::Url{pgConsulAgent.statusPeersUrl()},
                         cpr::Header{{"Connection", "close"}},
                         cpr::Timeout{1000});
       if (r.status_code != 200) {
@@ -375,7 +376,7 @@ pg_consul_agent_hostname_check_hook(char **newHostname, void **extra, GucSource 
 
 static const char*
 pg_consul_agent_hostname_show_hook(void) {
-  return pgConsulAgent.host.c_str();
+  return pgConsulAgent.host().c_str();
 }
 
 static void

@@ -1,9 +1,5 @@
 # pg_consul/playground/GNUmakefile
 
-# Maintainer vars
-CONTRIB_DIR=contrib
-CPR_DIR=${CONTRIB_DIR}/cpr
-
 CPR_OBJS	= $(patsubst %.cpp,%.o,$(wildcard *--*.cpp))
 
 OBJS		= $(patsubst %.cpp,%.o,$(wildcard consul_*.cpp))

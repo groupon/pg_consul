@@ -93,18 +93,6 @@ struct Peer final {
     return InitFromJson(peer, json_, err);
   }
 
-  static std::string LeaderUrl(const ::consul::Peer& peer) {
-    std::ostringstream url;
-    url << "http://" << peer.host << ":" << peer.port << "/v1/status/leader";
-    return url.str();
-  }
-
-  static std::string PeersUrl(const ::consul::Peer& peer) {
-    std::ostringstream url;
-    url << "http://" << peer.host << ":" << peer.port << "/v1/status/peers";
-    return url.str();
-  }
-
   std::string json() const { return json11::Json(*this).dump(); };
   json11::Json to_json() const {
     std::ostringstream ss;
