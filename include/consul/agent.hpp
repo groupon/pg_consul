@@ -83,10 +83,6 @@ public:
     return str;
   }
 
-  std::string str() const {
-    std::ostringstream ss;
-    ss << host_ << ":" << port_;
-    return ss.str();
   bool setCluster(const ClusterT cluster) noexcept {
     cluster_ = cluster;
     return true;
@@ -112,6 +108,12 @@ public:
     } catch(const ::boost::bad_lexical_cast &) {
       return false;
     }
+  }
+
+  std::string str() const {
+    std::ostringstream ss;
+    ss << host_ << ":" << port_;
+    return ss.str();
   }
 
   bool operator==(const Agent& a) const noexcept {
