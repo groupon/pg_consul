@@ -56,6 +56,10 @@ main(int argc, char* argv[]) {
     cmdMajorModes.push_back(&encodeArg);
     cmd.xorAdd(cmdMajorModes);
 
+    TCLAP::ValueArg<std::string>
+        clusterArg("c", "cluster", "consul Cluster (i.e. data center)", false, "", "dc1");
+    cmd.add(clusterArg);
+
     TCLAP::SwitchArg debugArg("d", "debug", "Print additional information with debugging", false);
     cmd.add(debugArg);
 
@@ -103,6 +107,9 @@ main(int argc, char* argv[]) {
     }
 
     keys = keyArg.getValue();
+    if (clusterArg.isSet()) {
+      agent.setCluster(clusterArg.getValue());
+    }
   } catch (TCLAP::ArgException &e)  {
     std::cerr << "ERROR: " << e.error() << " for arg " << e.argId() << std::endl;
     return EX_USAGE;
@@ -115,9 +122,15 @@ main(int argc, char* argv[]) {
         std::cerr << "Key URL: " << kvUrl << std::endl;
       }
 
+      auto params = cpr::Parameters();
+      if (!agent.cluster().empty()) {
+        params.AddParameter({"dc", agent.cluster()});
+      }
+
       auto r = cpr::Get(cpr::Url{kvUrl},
                         cpr::Header{{"Connection", "close"}},
-                        cpr::Timeout{1000});
+                        cpr::Timeout{1000},
+                        params);
       if (r.status_code != 200) {
         std::cerr << "consul agent returned error " << r.status_code << std::endl;
         return EX_TEMPFAIL;

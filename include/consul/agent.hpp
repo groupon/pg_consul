@@ -14,12 +14,14 @@
 namespace consul {
 class Agent final {
 public:
+  using ClusterT = std::string;
   using HostnameT = std::string;
   using PortT = std::uint16_t;
   using UrlT = std::string;
   const PortT DEFAULT_PORT = 8500;
   static constexpr const char* DEFAULT_HOST = "127.0.0.1";
 
+  ClusterT cluster() const noexcept { return cluster_; }
   HostnameT host() const noexcept { return host_; }
   PortT port() const noexcept { return port_; }
   bool leader() const noexcept { return leader_; }
@@ -85,6 +87,9 @@ public:
     std::ostringstream ss;
     ss << host_ << ":" << port_;
     return ss.str();
+  bool setCluster(const ClusterT cluster) noexcept {
+    cluster_ = cluster;
+    return true;
   }
 
   bool setHost(const HostnameT host) noexcept {
@@ -121,6 +126,7 @@ private:
   }
 
   HostnameT host_ = DEFAULT_HOST;
+  ClusterT cluster_;
   PortT port_ = DEFAULT_PORT;
   bool leader_ = false;
 
