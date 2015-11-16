@@ -2,6 +2,7 @@
 #define CONSUL_PEERS_HPP
 
 #include <vector>
+
 #include "json11.hpp"
 
 #include "consul/peer.hpp"
@@ -9,7 +10,7 @@
 namespace consul {
 
 struct Peers {
-  typedef std::vector<::consul::Peer> PeersT;
+  using PeersT = std::vector<::consul::Peer>;
   PeersT peers;
 
   static bool InitFromJson(Peers& peers, const std::string& json, std::string& err) {
