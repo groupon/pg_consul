@@ -57,7 +57,7 @@ PG_FUNCTION_INFO_V1(pg_consul_v1_status_peers);
 namespace {
 // ---- pg_consul-specific structs
 
-// consul_peers() function context
+// consul_status_peers() function context
 struct ConsulPeersFctx {
   ::consul::Peers peers;
   ::consul::Peers::PeersT::size_type iter = 0;
@@ -151,7 +151,7 @@ pg_consul_v1_status_leader(PG_FUNCTION_ARGS)
     if (r.status_code != 200) {
       ereport(ERROR,
               (errcode(ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION),
-               errmsg("consul_leader() returned error %ld", r.status_code)));
+               errmsg("consul_status_leader() returned error %ld", r.status_code)));
     }
 
     if (r.text.size() == 0) {
@@ -169,7 +169,7 @@ pg_consul_v1_status_leader(PG_FUNCTION_ARGS)
   } catch (std::exception & e) {
     ereport(ERROR,
             (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-             errmsg("consul_leader() failed: %s", std::string(e.what()).c_str())));
+             errmsg("consul_status_leader() failed: %s", std::string(e.what()).c_str())));
   }
 }
 
@@ -230,7 +230,7 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
       if (r.status_code != 200) {
         ereport(ERROR,
                 (errcode(ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION),
-                 errmsg("consul_leader() returned error %ld", r.status_code)));
+                 errmsg("consul_status_leader() returned error %ld", r.status_code)));
       }
 
       consul::Peer leader;
@@ -247,7 +247,7 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
       if (r.status_code != 200) {
         ereport(ERROR,
                 (errcode(ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION),
-                 errmsg("consul_peers() returned error %ld", r.status_code)));
+                 errmsg("consul_status_peers() returned error %ld", r.status_code)));
       }
 
       if (!::consul::Peers::InitFromJson(fctx->peers, r.text, err)) {
@@ -268,7 +268,7 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
     } catch (std::exception & e) {
       ereport(ERROR,
               (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-               errmsg("consul_peers() failed: %s", std::string(e.what()).c_str())));
+               errmsg("consul_status_peers() failed: %s", std::string(e.what()).c_str())));
     }
 
     MemoryContextSwitchTo(oldcontext);

@@ -14,14 +14,14 @@ See [docs](https://github.com/groupon/pg_consul/blob/master/doc/pg_consul.md)
 for details on how to use consul.
 
 ```sql
-# SELECT consul_leader();
-  consul_leader
-----------------
+# SELECT consul_status_leader();
+  consul_status_leader
+-----------------------
  127.0.0.1:8300
 (1 row)
 
 Time: 4.024 ms
-# SELECT * FROM consul_peers();
+# SELECT * FROM consul_status_peers();
   hostname   | port | leader
 -------------+------+--------
  10.23.9.162 | 8300 | f
