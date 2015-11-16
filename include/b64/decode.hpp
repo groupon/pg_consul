@@ -10,6 +10,11 @@ For details, see http://sourceforge.net/projects/libb64
 
 #include <iostream>
 
+#ifndef LIBB64_BUFFERSIZE
+#define LIBB64_BUFFERSIZE
+constexpr const int LIB64_BUFFERSIZE = 4096;
+#endif
+
 namespace base64
 {
 	extern "C"
@@ -22,7 +27,7 @@ namespace base64
 		base64_decodestate _state;
 		int _buffersize;
 
-		decoder(int buffersize_in = BUFFERSIZE)
+		decoder(int buffersize_in = LIB64_BUFFERSIZE)
 		: _buffersize(buffersize_in)
 		{}
 
