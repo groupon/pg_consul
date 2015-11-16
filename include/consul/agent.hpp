@@ -25,6 +25,7 @@ public:
   HostnameT host() const noexcept { return host_; }
   PortT port() const noexcept { return port_; }
   bool leader() const noexcept { return leader_; }
+  bool recursive() const noexcept { return recursive_; }
 
   Agent() : host_{DEFAULT_HOST}, port_{DEFAULT_PORT} {}
   Agent(HostnameT host) : host_{host}, port_{DEFAULT_PORT} {}
@@ -110,6 +111,11 @@ public:
     }
   }
 
+  bool setRecursive(bool recursive) noexcept {
+    recursive_ = recursive;
+    return true;
+  }
+
   std::string str() const {
     std::ostringstream ss;
     ss << host_ << ":" << port_;
@@ -131,6 +137,7 @@ private:
   ClusterT cluster_;
   PortT port_ = DEFAULT_PORT;
   bool leader_ = false;
+  bool recursive_ = false;
 
   // A collection of memoized URLs.  Assuming the backend will be long lived
   // and the URL won't change often.

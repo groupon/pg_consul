@@ -63,6 +63,9 @@ main(int argc, char* argv[]) {
     TCLAP::SwitchArg debugArg("d", "debug", "Print additional information with debugging", false);
     cmd.add(debugArg);
 
+    TCLAP::SwitchArg recursiveArg("r", "recursive", "Pass the '?recurse' query parameter to recursively find all keys");
+    cmd.add(recursiveArg);
+
     TCLAP::ValueArg<consul::Agent::PortT> portArg("p", "port", "Port number of consul agent", false, agent.port(), "port");
     cmd.add(portArg);
 
@@ -110,6 +113,10 @@ main(int argc, char* argv[]) {
     if (clusterArg.isSet()) {
       agent.setCluster(clusterArg.getValue());
     }
+
+    if (recursiveArg.isSet()) {
+      agent.setRecursive(recursiveArg.getValue());
+    }
   } catch (TCLAP::ArgException &e)  {
     std::cerr << "ERROR: " << e.error() << " for arg " << e.argId() << std::endl;
     return EX_USAGE;
@@ -125,6 +132,11 @@ main(int argc, char* argv[]) {
       auto params = cpr::Parameters();
       if (!agent.cluster().empty()) {
         params.AddParameter({"dc", agent.cluster()});
+      if (agent.recursive()) {
+        if (debugFlag) std::cerr << "Passing ?recurse flag" << std::endl;
+        params.AddParameter({"recurse", ""});
+      } else {
+        if (debugFlag) std::cerr << "Not passing the ?recurse flag" << std::endl;
       }
 
       auto r = cpr::Get(cpr::Url{kvUrl},

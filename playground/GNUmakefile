@@ -26,12 +26,14 @@ consul_peers: consul_peers.o ${CONTRIB_OBJS}
 	${CXX} ${LDFLAGS} -o $@ $^
 
 loast-test-keys::
-	curl -X PUT -d 'test-value' http://127.0.0.1:8500/v1/kv/test-key
+	curl -X PUT -d 'test1-value' http://127.0.0.1:8500/v1/kv/test/key1; echo
+	curl -X PUT -d 'test2-value' http://127.0.0.1:8500/v1/kv/test/key2; echo
 
 test:: ${BINS}
 	./consul_leader
 	./consul_peers
-	./consul_kv -k=test-key
+	./consul_kv -k=test/key1
+	./consul_kv -k=test -r
 
 clean::
 	rm -f ${BINS} *.o
