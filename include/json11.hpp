@@ -157,6 +157,17 @@ public:
     // Parse multiple objects, concatenated or separated by whitespace
     static std::vector<Json> parse_multi(const std::string & in, std::string & err);
 
+    // Json Type as a string
+    static const char* TypeStr(const Json& j) noexcept {
+      if (j.is_null()) {           return "null";
+      } else if (j.is_number()) {  return "number";
+      } else if (j.is_bool()) {    return "bool";
+      } else if (j.is_string()) {  return "string";
+      } else if (j.is_object()) {  return "object";
+      } else if (j.is_array()) {   return "array";   // for completeness
+      } else {                     return "UNKNOWN"; /* lolwut??!! */ }
+    }
+
     bool operator== (const Json &rhs) const;
     bool operator<  (const Json &rhs) const;
     bool operator!= (const Json &rhs) const { return !(*this == rhs); }
