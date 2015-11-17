@@ -21,34 +21,7 @@ public:
   static constexpr const char* Base64Header = "-----BEGIN BASE64 ENCODED STREAM-----";
   static constexpr const char* Base64Footer = "-----END BASE64 ENCODED STREAM-----";
 
-  static bool InitFromJson(KVPair& kvp, std::string json, std::string& err) noexcept {
-    auto jr = json11::Json::parse(json, err);
-    if (!err.empty()) {
-      std::ostringstream ss;
-      ss << "Parsing JSON failed: " << err;
-      err = ss.str();
-      return false;
-    }
-
-    if (!jr.is_array()) {
-      std::ostringstream ss;
-      ss << "Expected array, received " << json11::Json::TypeStr(jr) << " as input.";
-      err = ss.str();
-      return false;
-    }
-
-    const auto arr = jr.array_items();
-    if (arr.size() != 1) {
-      std::ostringstream ss;
-      ss << "Expected array with one element, received "
-         << arr.size()
-         << " elements";
-      err = ss.str();
-      return false;
-    }
-
-    auto obj = arr[0];
-
+  static bool InitFromJson(KVPair& kvp, const json11::Json& obj, std::string& err) noexcept {
     auto objMap = obj.object_items();
     if (objMap.empty()) {
       err = "Unexpected empty object in KV Pair response";
@@ -195,7 +168,6 @@ public:
         // there's a protocol violation.
       }
     } // Value
-
     return true;
   }
 

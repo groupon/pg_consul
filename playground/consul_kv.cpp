@@ -28,8 +28,7 @@ extern "C" {
 #include "tclap/CmdLine.h"
 
 #include "consul/agent.hpp"
-#include "consul/kv_pair.hpp"
-#include "consul/peers.hpp"
+#include "consul/kv_pairs.hpp"
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -168,28 +167,41 @@ main(int argc, char* argv[]) {
       }
       DLOG_IF(debugFlag, INFO) << "URL: " << r.url;
 
-      consul::KVPair kvp;
+      consul::KVPairs kvps;
       std::string err;
-      if (!::consul::KVPair::InitFromJson(kvp, r.text, err)) {
-        LOG(ERROR) << "Failed to load KVPair from JSON: " << err;
+      if (!::consul::KVPairs::InitFromJson(kvps, r.text, err)) {
+        LOG(ERROR) << "Failed to load KVPair(s) from JSON: " << err;
         return EX_PROTOCOL;
       }
 
-      std::cout << "Key: " << kvp.key() << std::endl;
-      std::cout << "Value: " << kvp.value() << std::endl;
-      if (!kvp.session().empty()) {
-        std::cout << "Session: " << kvp.session() << std::endl;
+      if (agent.recursive()) {
+        LOG_IF(debugFlag, INFO) << "Found " << kvps.size() << " objects when searching for " << kvUrl;
+      } else {
+        if (kvps.size() > 1) {
+          LOG(ERROR) << "Non-recursive GET for " << r.url << " returned " << kvps.size() << " objects";
+          return EX_PROTOCOL;
+        }
       }
 
-      DLOG_IF(debugFlag, INFO)
-          << "Value (base64-encoded): "
-          << kvp.valueEncoded() << std::endl;
-      LOG_IF(debugFlag, INFO) << "CreateIndex: " << kvp.createIndex() << std::endl;
-      LOG_IF(debugFlag, INFO) << "ModifyIndex: " << kvp.modifyIndex() << std::endl;
-      LOG_IF(debugFlag, INFO) << "LockIndex: "   << kvp.lockIndex() << std::endl;
-      LOG_IF(debugFlag, INFO) << "Flags: "       << kvp.flags() << std::endl;
-      LOG_IF(debugFlag, INFO) << "Session: "     << (!kvp.session().empty() ? kvp.session() : "[none]") << std::endl;
-      LOG_IF(debugFlag, INFO) << "JSON: " << kvp.json() << std::endl;
+      std::size_t i = 0;
+      for (auto& kvp : kvps.objs()) {
+        if (agent.recursive()) {
+          std::cout << "========== BEGIN KEY " << ++i << "/" << kvps.size() << " ==========" << std::endl;
+        }
+        std::cout << "Key: " << kvp.key() << std::endl;
+        std::cout << "Value: " << kvp.value() << std::endl;
+        if (!kvp.session().empty()) {
+          std::cout << "Session: " << kvp.session() << std::endl;
+        }
+
+        DLOG_IF(debugFlag, INFO) << "Value (base64-encoded): " << kvp.valueEncoded();
+        LOG_IF(debugFlag, INFO) << "CreateIndex: " << kvp.createIndex();
+        LOG_IF(debugFlag, INFO) << "ModifyIndex: " << kvp.modifyIndex();
+        LOG_IF(debugFlag, INFO) << "LockIndex: "   << kvp.lockIndex();
+        LOG_IF(debugFlag, INFO) << "Flags: "       << kvp.flags();
+        LOG_IF(debugFlag, INFO) << "Session: "     << (!kvp.session().empty() ? kvp.session() : "[none]");
+        LOG_IF(debugFlag, INFO) << "JSON: " << kvp.json();
+      }
     }
 
     return EX_OK;

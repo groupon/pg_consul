@@ -25,7 +25,8 @@ consul_leader: consul_leader.o ${CONTRIB_OBJS}
 consul_peers: consul_peers.o ${CONTRIB_OBJS}
 	${CXX} ${LDFLAGS} -o $@ $^
 
-loast-test-keys::
+load-test-keys::
+	curl -X PUT -d 'test-value' http://127.0.0.1:8500/v1/kv/test; echo
 	curl -X PUT -d 'test1-value' http://127.0.0.1:8500/v1/kv/test/key1; echo
 	curl -X PUT -d 'test2-value' http://127.0.0.1:8500/v1/kv/test/key2; echo
 
