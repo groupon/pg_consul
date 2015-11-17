@@ -89,10 +89,7 @@ main(int argc, char* argv[]) {
     TCLAP::ValueArg<consul::Agent::HostnameT> hostArg("H", "host", "Hostname of consul agent", false, agent.host().c_str(), "hostname");
     cmd.add(hostArg);
 
-    std::vector<std::string> methods;
-    methods.emplace_back("GET");
-    methods.emplace_back("PUT");
-    methods.emplace_back("DELETE");
+    std::vector<std::string> methods{{"GET","PUT","DELETE"}};
     TCLAP::ValuesConstraint<std::string> methodConstraint(methods);
     TCLAP::ValueArg<std::string> methodArg("m", "method", "HTTP method used to act on the key", false, "get", &methodConstraint);
     cmd.add(methodArg);
