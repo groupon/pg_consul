@@ -7,12 +7,15 @@
 CREATE FUNCTION consul_status_leader()
 RETURNS TEXT
 AS 'MODULE_PATHNAME', 'pg_consul_v1_status_leader'
-LANGUAGE C;
+LANGUAGE C
+LEAKPROOF;
 
 CREATE FUNCTION consul_status_peers(
        OUT hostname TEXT,
        OUT port INT2,
        OUT leader BOOL)
-RETURNS RECORD
+RETURNS SETOF RECORD
 AS 'MODULE_PATHNAME', 'pg_consul_v1_status_peers'
-LANGUAGE C;
+LANGUAGE C
+LEAKPROOF
+ROWS 5;
