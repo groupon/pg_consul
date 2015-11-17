@@ -27,9 +27,9 @@ PG_CPPFLAGS+=-std=c++14
 #PG_CPPFLAGS+=-fno-exceptions
 SHLIB_LINK=-std=c++14 -stdlib=libc++ -lcurl
 EXTRA_CLEAN	= playground/*.o \
-	playground/consul_kv \
-	playground/consul_leader \
-	playground/consul_peers
+	playground/consul-kv \
+	playground/consul-leader \
+	playground/consul-peers
 
 PG_CONFIG	?= pg_config
 PGXS		:= $(shell $(PG_CONFIG) --pgxs)

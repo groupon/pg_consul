@@ -31,7 +31,7 @@ extern "C" {
 INITIALIZE_EASYLOGGINGPP
 
 static constexpr const char* COMMAND_HELP_MSG =
-    u8R"msg(consul_leader displays the current leader of the consul cluster according to the target consul agent.)msg";
+    u8R"msg(consul-leader displays the current leader of the consul cluster according to the target consul agent.)msg";
 static bool debugFlag = false;
 
 int

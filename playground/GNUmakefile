@@ -3,7 +3,7 @@
 CONTRIB_OBJS	= $(patsubst %.cpp,%.o,$(wildcard *--*.cpp))
 
 OBJS		= $(patsubst %.cpp,%.o,$(wildcard consul_*.cpp))
-BINS		= consul_kv consul_leader consul_peers
+BINS		= consul-kv consul-leader consul-peers
 
 CPPFLAGS+=-pedantic -Wall
 # CPPFLAGS+=-Wno-deprecated-register -Wno-unused-local-typedef
@@ -16,13 +16,13 @@ all: ${BINS}
 %.o: %.cpp
 	${CXX} -c ${CPPFLAGS} -o $@ $<
 
-consul_kv: consul_kv.o ${CONTRIB_OBJS}
+consul-kv: consul_kv.o ${CONTRIB_OBJS}
 	${CXX} ${LDFLAGS} -o $@ $^
 
-consul_leader: consul_leader.o ${CONTRIB_OBJS}
+consul-leader: consul_leader.o ${CONTRIB_OBJS}
 	${CXX} ${LDFLAGS} -o $@ $^
 
-consul_peers: consul_peers.o ${CONTRIB_OBJS}
+consul-peers: consul_peers.o ${CONTRIB_OBJS}
 	${CXX} ${LDFLAGS} -o $@ $^
 
 load-test-keys::
@@ -31,10 +31,10 @@ load-test-keys::
 	curl -X PUT -d 'test2-value' http://127.0.0.1:8500/v1/kv/test/key2; echo
 
 test:: ${BINS}
-	./consul_leader
-	./consul_peers
-	./consul_kv -k=test/key1
-	./consul_kv -k=test -r
+	./consul-leader
+	./consul-peers
+	./consul-kv -k=test/key1
+	./consul-kv -k=test -r
 
 clean::
 	rm -f ${BINS} *.o

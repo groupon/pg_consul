@@ -1,3 +1,3 @@
-consul_leader
-consul_peers
-consul_kv
+consul-leader
+consul-peers
+consul-kv
