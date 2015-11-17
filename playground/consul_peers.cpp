@@ -8,7 +8,7 @@
  */
 
 extern "C" {
-#include "sysexits.h"
+#include <sysexits.h>
 #include <unistd.h>
 }
 

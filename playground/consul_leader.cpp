@@ -8,7 +8,7 @@
  */
 
 extern "C" {
-#include "sysexits.h"
+#include <sysexits.h>
 #include <unistd.h>
 }
 
@@ -25,6 +25,7 @@ extern "C" {
 #include "easylogging++.h"
 #include "json11.hpp"
 #include "tclap/CmdLine.h"
+
 #include "consul.hpp"
 
 INITIALIZE_EASYLOGGINGPP
