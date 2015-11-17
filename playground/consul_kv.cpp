@@ -9,6 +9,7 @@
 
 extern "C" {
 #include "sysexits.h"
+#include <unistd.h>
 }
 
 #include <iostream>
@@ -20,10 +21,17 @@ extern "C" {
 #include "tclap/CmdLine.h"
 #include "b64/decode.hpp"
 #include "b64/encode.hpp"
+#define ELPP_NO_DEFAULT_LOG_FILE
+#define ELPP_STACKTRACE_ON_CRASH
+#define ELPP_STL_LOGGING
+#define ELPP_THREAD_SAFE
+#include "easylogging++.h"
 
 #include "consul/agent.hpp"
 #include "consul/kv_pair.hpp"
 #include "consul/peers.hpp"
+
+INITIALIZE_EASYLOGGINGPP
 
 static constexpr const char* COMMAND_HELP_MSG =
     u8R"msg(consul_kv displays all details of a stored key in the consul cluster
@@ -33,6 +41,14 @@ static bool debugFlag = false;
 
 int
 main(int argc, char* argv[]) {
+  el::Configurations defaultConf;
+  defaultConf.setToDefault();
+  defaultConf.setGlobally(el::ConfigurationType::ToFile, std::string("false"));
+  defaultConf.setGlobally(el::ConfigurationType::ToStandardOutput, std::string("true"));
+  el::Loggers::reconfigureLogger("default", defaultConf);
+  if (::isatty(::fileno(stdout)))
+    el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
+
   ::consul::Agent agent;
   std::vector<::consul::KVPair::KeyT> keys;
 
@@ -118,25 +134,28 @@ main(int argc, char* argv[]) {
       agent.setRecursive(recursiveArg.getValue());
     }
   } catch (TCLAP::ArgException &e)  {
-    std::cerr << "ERROR: " << e.error() << " for arg " << e.argId() << std::endl;
+    LOG(FATAL) << e.error() << " for arg " << e.argId();
     return EX_USAGE;
   }
 
   try {
     for (auto& key : keys) {
       auto kvUrl = agent.kvUrl(key);
-      if (debugFlag) {
-        std::cerr << "Key URL: " << kvUrl << std::endl;
-      }
+      LOG_IF(debugFlag, INFO) << "Key URL: " << kvUrl;
 
       auto params = cpr::Parameters();
       if (!agent.cluster().empty()) {
+        LOG_IF(debugFlag, INFO) << "Passing ?dc=" << agent.cluster() << " flag";
         params.AddParameter({"dc", agent.cluster()});
+      } else {
+        LOG_IF(debugFlag, INFO) << "No consul ?dc= specified";
+      }
+
       if (agent.recursive()) {
-        if (debugFlag) std::cerr << "Passing ?recurse flag" << std::endl;
+        LOG_IF(debugFlag, INFO) << "Passing ?recurse flag";
         params.AddParameter({"recurse", ""});
       } else {
-        if (debugFlag) std::cerr << "Not passing the ?recurse flag" << std::endl;
+        LOG_IF(debugFlag, INFO) << "Not passing the ?recurse flag";
       }
 
       auto r = cpr::Get(cpr::Url{kvUrl},
@@ -144,14 +163,15 @@ main(int argc, char* argv[]) {
                         cpr::Timeout{1000},
                         params);
       if (r.status_code != 200) {
-        std::cerr << "consul agent returned error " << r.status_code << std::endl;
+        LOG(ERROR) << "consul agent returned error " << r.status_code;
         return EX_TEMPFAIL;
       }
+      DLOG_IF(debugFlag, INFO) << "URL: " << r.url;
 
       consul::KVPair kvp;
       std::string err;
       if (!::consul::KVPair::InitFromJson(kvp, r.text, err)) {
-        std::cerr << "Failed to load KVPair from JSON: " << err << std::endl;
+        LOG(ERROR) << "Failed to load KVPair from JSON: " << err;
         return EX_PROTOCOL;
       }
 
@@ -161,24 +181,20 @@ main(int argc, char* argv[]) {
         std::cout << "Session: " << kvp.session() << std::endl;
       }
 
-      if (debugFlag) {
-        std::cout
-            << "CreateIndex: " << kvp.createIndex() << std::endl
-            << "ModifyIndex: " << kvp.modifyIndex() << std::endl
-            << "LockIndex: "   << kvp.lockIndex() << std::endl
-            << "Flags: "       << kvp.flags() << std::endl
-            << "Session: "     << (!kvp.session().empty() ? kvp.session() : "[none]") << std::endl
-            << "Value (base64-encoded): " << std::endl
-            << consul::KVPair::Base64Header << std::endl
-            << kvp.valueEncoded() << std::endl
-            << consul::KVPair::Base64Footer << std::endl
-            << "JSON: " << kvp.json() << std::endl;
-      }
+      DLOG_IF(debugFlag, INFO)
+          << "Value (base64-encoded): "
+          << kvp.valueEncoded() << std::endl;
+      LOG_IF(debugFlag, INFO) << "CreateIndex: " << kvp.createIndex() << std::endl;
+      LOG_IF(debugFlag, INFO) << "ModifyIndex: " << kvp.modifyIndex() << std::endl;
+      LOG_IF(debugFlag, INFO) << "LockIndex: "   << kvp.lockIndex() << std::endl;
+      LOG_IF(debugFlag, INFO) << "Flags: "       << kvp.flags() << std::endl;
+      LOG_IF(debugFlag, INFO) << "Session: "     << (!kvp.session().empty() ? kvp.session() : "[none]") << std::endl;
+      LOG_IF(debugFlag, INFO) << "JSON: " << kvp.json() << std::endl;
     }
 
     return EX_OK;
   } catch (std::exception & e) {
-    std::cerr << "cpr threw an exception: " << e.what() << std::endl;
+    LOG(FATAL) << "cpr threw an exception: " << e.what();
     return EX_SOFTWARE;
   }
 

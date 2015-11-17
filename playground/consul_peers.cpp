@@ -9,6 +9,7 @@
 
 extern "C" {
 #include "sysexits.h"
+#include <unistd.h>
 }
 
 #include <iostream>
@@ -17,10 +18,17 @@ extern "C" {
 #include <vector>
 
 #include "cpr/cpr.h"
+#define ELPP_NO_DEFAULT_LOG_FILE
+#define ELPP_STACKTRACE_ON_CRASH
+#define ELPP_STL_LOGGING
+#define ELPP_THREAD_SAFE
+#include "easylogging++.h"
 #include "tclap/CmdLine.h"
 
 #include "consul/agent.hpp"
 #include "consul/peers.hpp"
+
+INITIALIZE_EASYLOGGINGPP
 
 static constexpr const char* COMMAND_HELP_MSG =
     u8R"msg(consul_peers displays the current consul servers (peers) in the consul cluster according to the target consul agent.)msg";
@@ -28,6 +36,14 @@ static bool debugFlag = false;
 
 int
 main(int argc, char* argv[]) {
+  el::Configurations defaultConf;
+  defaultConf.setToDefault();
+  defaultConf.setGlobally(el::ConfigurationType::ToFile, std::string("false"));
+  defaultConf.setGlobally(el::ConfigurationType::ToStandardOutput, std::string("true"));
+  el::Loggers::reconfigureLogger("default", defaultConf);
+  if (::isatty(::fileno(stdout)))
+    el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
+
   ::consul::Agent agent;
 
   try {
@@ -57,7 +73,7 @@ main(int argc, char* argv[]) {
       agent.setPort(portArg.getValue());
     }
   } catch (TCLAP::ArgException &e)  {
-    std::cerr << "ERROR: " << e.error() << " for arg " << e.argId() << std::endl;
+    LOG(FATAL) << e.error() << " for arg " << e.argId();
     return EX_USAGE;
   }
 
@@ -66,7 +82,7 @@ main(int argc, char* argv[]) {
                       cpr::Header{{"Connection", "close"}},
                       cpr::Timeout{1000});
     if (r.status_code != 200) {
-      std::cerr << "consul returned error " << r.status_code << std::endl;
+      LOG(ERROR) << "consul returned error " << r.status_code;
       return EX_TEMPFAIL;
     }
 
@@ -74,7 +90,7 @@ main(int argc, char* argv[]) {
     {
       std::string err;
       if (!::consul::Peers::InitFromJson(peers, r.text, err)) {
-        std::cerr << "Failed to load peers from JSON: " << err << std::endl;
+        LOG(ERROR) << "Failed to load peers from JSON: " << err;
         return EX_PROTOCOL;
       }
     }
@@ -85,7 +101,7 @@ main(int argc, char* argv[]) {
 
     return EX_OK;
   } catch (std::exception & e) {
-    std::cerr << "cpr threw an exception: " << e.what() << std::endl;
+    LOG(FATAL) << "cpr threw an exception: " << e.what();
     return EX_SOFTWARE;
   }
 
