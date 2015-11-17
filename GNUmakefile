@@ -28,8 +28,7 @@ PG_CPPFLAGS+=-std=c++14
 SHLIB_LINK=-std=c++14 -stdlib=libc++ -lcurl
 EXTRA_CLEAN	= playground/*.o \
 	playground/consul-kv \
-	playground/consul-leader \
-	playground/consul-peers
+	playground/consul-status
 
 PG_CONFIG	?= pg_config
 PGXS		:= $(shell $(PG_CONFIG) --pgxs)
