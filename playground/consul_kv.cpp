@@ -72,7 +72,7 @@ main(int argc, char* argv[]) {
     cmd.xorAdd(cmdMajorModes);
 
     TCLAP::ValueArg<std::string>
-        clusterArg("c", "cluster", "consul Cluster (i.e. data center)", false, "", "dc1");
+        clusterArg("c", "cluster", "consul Cluster (i.e. '?dc=<cluster>')", false, "", "dc1");
     cmd.add(clusterArg);
 
     TCLAP::SwitchArg debugArg("d", "debug", "Print additional information with debugging", false);
