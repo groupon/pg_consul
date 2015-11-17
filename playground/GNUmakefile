@@ -3,7 +3,7 @@
 CONTRIB_OBJS	= $(patsubst %.cpp,%.o,$(wildcard *--*.cpp))
 
 OBJS		= $(patsubst %.cpp,%.o,$(wildcard consul_*.cpp))
-BINS		= consul-kv consul-leader consul-peers
+BINS		= consul-kv consul-status
 
 CPPFLAGS+=-pedantic -Wall
 # CPPFLAGS+=-Wno-deprecated-register -Wno-unused-local-typedef
@@ -19,10 +19,7 @@ all: ${BINS}
 consul-kv: consul_kv.o ${CONTRIB_OBJS}
 	${CXX} ${LDFLAGS} -o $@ $^
 
-consul-leader: consul_leader.o ${CONTRIB_OBJS}
-	${CXX} ${LDFLAGS} -o $@ $^
-
-consul-peers: consul_peers.o ${CONTRIB_OBJS}
+consul-status: consul_status.o ${CONTRIB_OBJS}
 	${CXX} ${LDFLAGS} -o $@ $^
 
 load-test-keys::
@@ -31,8 +28,9 @@ load-test-keys::
 	curl -X PUT -d 'test2-value' http://127.0.0.1:8500/v1/kv/test/key2; echo
 
 test:: ${BINS}
-	./consul-leader
-	./consul-peers
+	./consul-status -m=leader
+	./consul-status -m=peers
+	./consul-status -m=all
 	./consul-kv -k=test/key1
 	./consul-kv -k=test -r
 

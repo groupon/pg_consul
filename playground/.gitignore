@@ -1,3 +1,2 @@
-consul-leader
-consul-peers
 consul-kv
+consul-status
