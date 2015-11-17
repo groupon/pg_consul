@@ -17,15 +17,15 @@ extern "C" {
 #include <string>
 #include <vector>
 
-#include "cpr/cpr.h"
-#include "tclap/CmdLine.h"
 #include "b64/decode.hpp"
 #include "b64/encode.hpp"
+#include "cpr/cpr.h"
 #define ELPP_NO_DEFAULT_LOG_FILE
 #define ELPP_STACKTRACE_ON_CRASH
 #define ELPP_STL_LOGGING
 #define ELPP_THREAD_SAFE
 #include "easylogging++.h"
+#include "tclap/CmdLine.h"
 
 #include "consul/agent.hpp"
 #include "consul/kv_pair.hpp"
