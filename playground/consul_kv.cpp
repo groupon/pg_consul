@@ -50,9 +50,15 @@ main(int argc, char* argv[]) {
 
   ::consul::Agent agent;
   ::consul::KVPair::ValueT value;
-    TCLAP::ValueArg<::consul::KVPair::IndexT>
-        casArg("C", "cas", "Check-and-Set index. When performing a PUT or DELETE, only operate if the ModifyIndex matches the passed in CAS value",
-               false, std::numeric_limits<::consul::KVPair::IndexT>::max(), "modify-index");
+  TCLAP::ValueArg<::consul::KVPair::IndexT>
+      casArg("C", "cas", "Check-and-Set index. When performing a PUT or DELETE, only operate if the ModifyIndex matches the passed in CAS value",
+             false, std::numeric_limits<::consul::KVPair::IndexT>::max(), "modify-index");
+  TCLAP::ValueArg<::consul::KVPair::SessionT>
+      sessionArg("S", "session", "Acquire a lock using the specified Session",
+                 false, "", "session");
+  TCLAP::ValueArg<::consul::KVPair::FlagsT>
+      flagsArg("F", "flags", "Opaque numeric value attached to a key (0 through (2^64)-1)",
+               false, std::numeric_limits<::consul::KVPair::FlagsT>::max() - 1, "flag");
   enum class MethodType : char { GET, PUT, DELETE };
   MethodType methodType;
   bool debugFlag = false;
@@ -101,8 +107,10 @@ main(int argc, char* argv[]) {
     TCLAP::SwitchArg recursiveArg("r", "recursive", "Pass the '?recurse' query parameter to recursively find all keys");
     cmd.add(recursiveArg);
 
-    // NOTE: casArg defined above try block
+    // NOTE: the following *Args were defined above try{} block
     cmd.add(casArg);
+    cmd.add(flagsArg);
+    cmd.add(sessionArg);
 
     TCLAP::ValueArg<std::string>
         clusterArg("c", "cluster", "consul Cluster (i.e. '?dc=<cluster>')", false, "", "dc1");
@@ -212,6 +220,17 @@ main(int argc, char* argv[]) {
         params.AddParameter({"cas", casStr});
       }
 
+      if (sessionArg.isSet() && methodType == MethodType::PUT) {
+        LOG_IF(debugFlag, INFO) << "Passing ?acquire=" << sessionArg.getValue() << " parameter";
+        params.AddParameter({"acquire", sessionArg.getValue()});
+      }
+
+      if (flagsArg.isSet() && methodType == MethodType::PUT) {
+        auto flagsStr = ::boost::lexical_cast<std::string>(flagsArg.getValue());
+        LOG_IF(debugFlag, INFO) << "Passing ?flags=" << flagsStr << " parameter";
+        params.AddParameter({"flags", flagsStr});
+      }
+
       if (methodType == MethodType::GET) {
         auto r = cpr::Get(cpr::Url{kvUrl},
                           cpr::Header{{"Connection", "close"}},
@@ -270,12 +289,6 @@ main(int argc, char* argv[]) {
         }
         DLOG_IF(debugFlag, INFO) << "URL: " << r.url;
       } else if (methodType == MethodType::PUT) {
-        // TODO(seanc@): Need to be able to pass the following flags (means
-        // chasing these into CLI args):
-        //
-        // * flags
-        // * acquire
-        // * release
         auto r = cpr::Put(cpr::Url{kvUrl},
                           cpr::Header{{"Connection", "close"}},
                           cpr::Timeout{1000},
