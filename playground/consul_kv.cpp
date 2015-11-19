@@ -34,8 +34,8 @@ extern "C" {
 INITIALIZE_EASYLOGGINGPP
 
 static constexpr const char* COMMAND_HELP_MSG =
-    u8R"msg(consul-kv displays all details of a stored key in the consul cluster
-according to the target consul agent.)msg";
+    u8"consul-kv displays all details of a stored key in the consul cluster "
+    u8"according to the target consul agent.";
 
 
 int
