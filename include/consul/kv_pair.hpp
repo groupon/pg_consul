@@ -21,6 +21,26 @@ public:
   static constexpr const char* Base64Header = "-----BEGIN BASE64 ENCODED STREAM-----";
   static constexpr const char* Base64Footer = "-----END BASE64 ENCODED STREAM-----";
 
+  static std::string FlagsStr(FlagsT flags) noexcept {
+    std::string str;
+    try {
+      str = ::boost::lexical_cast<std::string>(flags);
+    } catch(const ::boost::bad_lexical_cast &) {
+      // Grr... shouldn't happen unless ENOMEM
+    }
+    return str;
+  }
+
+  static std::string IndexStr(IndexT idx) noexcept {
+    std::string str;
+    try {
+      str = ::boost::lexical_cast<std::string>(idx);
+    } catch(const ::boost::bad_lexical_cast &) {
+      // Grr... shouldn't happen unless ENOMEM
+    }
+    return str;
+  }
+
   static bool InitFromJson(KVPair& kvp, const json11::Json& obj, std::string& err) noexcept {
     auto objMap = obj.object_items();
     if (objMap.empty()) {
@@ -172,9 +192,22 @@ public:
   }
 
   IndexT createIndex() const noexcept { return createIndex_; }
+  std::string createIndexStr() const noexcept {
+    return IndexStr(createIndex_);
+  }
   IndexT modifyIndex() const noexcept { return modifyIndex_; }
+  std::string modifyIndexStr() const noexcept {
+    return IndexStr(modifyIndex_);
+  }
   IndexT lockIndex() const noexcept { return lockIndex_; }
+  std::string lockIndexStr() const noexcept {
+    return IndexStr(lockIndex_);
+  }
   FlagsT flags() const noexcept { return flags_; }
+  std::string flagsStr() const noexcept {
+    return KVPair::FlagsStr(flags_);
+  }
+
   SessionT session() const noexcept { return session_; }
   KeyT key() const noexcept { return key_; }
   ValueT value() const noexcept { return value_; }

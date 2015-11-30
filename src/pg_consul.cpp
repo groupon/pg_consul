@@ -50,12 +50,19 @@ PG_MODULE_MAGIC;
 // ---- Exported function decls that need to be visible after the .so is dlopen()'ed.
 void _PG_init(void);
 void _PG_fini(void);
+PG_FUNCTION_INFO_V1(pg_consul_v1_kv_get);
 PG_FUNCTION_INFO_V1(pg_consul_v1_status_leader);
 PG_FUNCTION_INFO_V1(pg_consul_v1_status_peers);
 } // extern "C"
 
 namespace {
 // ---- pg_consul-specific structs
+
+// consul_kv_get() function context
+struct ConsulGetFctx {
+  ::consul::KVPairs kvps;
+  ::consul::KVPairs::KVPairsT::size_type iter = 0;
+};
 
 // consul_status_peers() function context
 struct ConsulPeersFctx {
@@ -70,6 +77,26 @@ static const constexpr char PG_CONSUL_AGENT_HOSTNAME_SHORT_DESCR[] = "Sets hostn
 static const constexpr ::consul::Agent::PortT PG_CONSUL_AGENT_PORT_DEFAULT = 8500;
 static const constexpr char PG_CONSUL_AGENT_PORT_LONG_DESCR[] = "Port number of the consul agent this API client should use to talk with";
 static const constexpr char PG_CONSUL_AGENT_PORT_SHORT_DESCR[] = "Port number used by the agent for consul RPC requests.";
+
+// -- consul_peers() SETOF column constants
+static const constexpr int PG_CONSUL_PEERS1_COLUMN_HOST   = 0;
+static const constexpr int PG_CONSUL_PEERS1_COLUMN_PORT   = 1;
+static const constexpr int PG_CONSUL_PEERS1_COLUMN_LEADER = 2;
+static const constexpr int PG_CONSUL_PEERS1_NUM_COLUMNS   = 3;
+
+// -- consul_kv_get() SETOF column constants
+// {"CreateIndex": "469", "Flags": "0", "Key": "test", "LockIndex": "0", "ModifyIndex": "469", "Session": "", "Value": "dGVzdC12YWx1ZQ=="}
+static const constexpr int PG_CONSUL_KV1_GET_IN_KEY_POS       = 0;
+static const constexpr int PG_CONSUL_KV1_GET_IN_RECURSE_POS   = 1;
+static const constexpr int PG_CONSUL_KV1_GET_IN_CLUSTER_POS   = 2;
+static const constexpr int PG_CONSUL_KV1_GET_COUMN_KEY        = 0;
+static const constexpr int PG_CONSUL_KV1_GET_COUMN_VALUE      = 1;
+static const constexpr int PG_CONSUL_KV1_GET_COUMN_FLAGS      = 2;
+static const constexpr int PG_CONSUL_KV1_GET_COUMN_CREATE_IDX = 3;
+static const constexpr int PG_CONSUL_KV1_GET_COUMN_MODIFY_IDX = 4;
+static const constexpr int PG_CONSUL_KV1_GET_COUMN_LOCK_IDX   = 5;
+static const constexpr int PG_CONSUL_KV1_GET_COUMN_SESSION    = 6;
+static const constexpr int PG_CONSUL_KV1_GET_NUM_COLUMNS      = 7;
 
 // ---- GUC variables
 
@@ -134,6 +161,210 @@ _PG_fini(void)
 {
   // Uninstall hooks.
 }
+
+
+Datum
+pg_consul_v1_kv_get(PG_FUNCTION_ARGS) {
+  MemoryContext oldcontext;
+  void* fctx_p;
+  TupleDesc tupdesc;
+  AttInMetadata *attinmeta;
+  ConsulGetFctx *fctx;
+  FuncCallContext *funcctx;
+  uint32 call_cntr;
+  uint32 max_calls;
+
+  if (SRF_IS_FIRSTCALL()) {
+    // create a function context for cross-call persistence
+    funcctx = SRF_FIRSTCALL_INIT();
+
+    // switch to memory context appropriate for multiple function calls
+    oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+
+    // Build a tuple descriptor for our result type
+    if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
+      ereport(ERROR,
+              (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+               errmsg("function returning record called in context "
+                      "that cannot accept type record")));
+
+    // generate attribute metadata needed later to produce tuples from raw C
+    // strings
+    attinmeta = TupleDescGetAttInMetadata(tupdesc);
+    funcctx->attinmeta = attinmeta;
+
+    // allocate memory for user context.  Use emlacement new operator.
+    fctx_p = (ConsulGetFctx *)palloc(sizeof(ConsulGetFctx));
+
+    /*
+     * Use fctx to keep track of KVPair entries from call to call.  The first
+     * call returns the entire list, then every subsequent call iterates
+     * through the list.
+     */
+    ConsulGetFctx* fctx = new(fctx_p) ConsulGetFctx();
+
+    // WARNING(seanc@): it is exceedingly important to destruct the object
+    // explicitly: fctx->~ConsulGetFctx(); Pulling this off requires a bit
+    // of manual accountancy.  If the query is cancelled while returning
+    // rows, this will leak because the destructor is *ONLY* called when
+    // call_cntr == max_calls.
+    funcctx->user_fctx = fctx;
+
+    // Populate KVPairs via cpr
+    try {
+      consul::KVPair::KeyT key;
+      if (PG_ARGISNULL(PG_CONSUL_KV1_GET_IN_KEY_POS)) {
+        PG_RETURN_NULL();
+      } else {
+        text *keyp = PG_GETARG_TEXT_P(PG_CONSUL_KV1_GET_IN_KEY_POS);
+        key.assign(VARDATA(keyp), VARSIZE(keyp) - VARHDRSZ);
+      }
+
+      bool recurseParam = false;
+      if (!PG_ARGISNULL(PG_CONSUL_KV1_GET_IN_RECURSE_POS))
+        recurseParam = PG_GETARG_BOOL(PG_CONSUL_KV1_GET_IN_RECURSE_POS);
+
+      consul::Agent::ClusterT dcParam;
+      if (!PG_ARGISNULL(PG_CONSUL_KV1_GET_IN_CLUSTER_POS)) {
+        text *clusterp = PG_GETARG_TEXT_P(PG_CONSUL_KV1_GET_IN_CLUSTER_POS);
+        dcParam.assign(VARDATA(clusterp), VARSIZE(clusterp) - VARHDRSZ);
+      }
+
+      const consul::KVPair::IndexT casParam = 0;
+      const consul::KVPair::SessionT acquireParam;
+      const consul::KVPair::FlagsT flagsParam = 0;
+
+      auto params = cpr::Parameters();
+      if (!dcParam.empty()) {
+        params.AddParameter({"dc", dcParam});
+      }
+
+      if (recurseParam) {
+        params.AddParameter({"recurse", ""});
+      }
+
+      if (casParam) {
+        params.AddParameter({"cas", consul::KVPair::IndexStr(casParam)});
+      }
+
+      if (flagsParam) {
+        params.AddParameter({"flags", consul::KVPair::FlagsStr(flagsParam)});
+      }
+
+      if (!acquireParam.empty()) {
+        params.AddParameter({"acquire", acquireParam});
+      }
+
+      // Make a call to get the current leader
+      auto kvUrl = pgConsulAgent.kvUrl(key);
+      auto r = cpr::Get(cpr::Url{kvUrl},
+                        cpr::Header{{"Connection", "close"}},
+                        cpr::Timeout{1000},
+                        params);
+      if (r.status_code != 200) {
+        ereport(ERROR,
+                (errcode(ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION),
+                 errmsg("consul_kv_get() returned error %ld", r.status_code)));
+      }
+
+      consul::KVPairs kvps;
+      std::string err;
+      if (!::consul::KVPairs::InitFromJson(fctx->kvps, r.text, err)) {
+        ereport(ERROR, (errcode(ERRCODE_FDW_REPLY_HANDLE),
+                        errmsg("Failed to load KV pairs from JSON: %s: %s", err.c_str(), r.text.c_str())));
+      }
+
+      if (!recurseParam && fctx->kvps.size() > 1) {
+        ereport(ERROR,
+                (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+                 errmsg("consul_kv_get() performed a non-recursive GET but received %lu responses", fctx->kvps.size())));
+      }
+
+      // Set the max calls
+      funcctx->max_calls = fctx->kvps.objs().size();
+    } catch (std::exception & e) {
+      ereport(ERROR,
+              (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+               errmsg("consul_kv_get() failed: %s", std::string(e.what()).c_str())));
+    }
+
+    MemoryContextSwitchTo(oldcontext);
+  }
+
+  // Stuff done on every call of the function
+  funcctx = SRF_PERCALL_SETUP();
+
+  call_cntr = funcctx->call_cntr;
+  max_calls = funcctx->max_calls;
+  attinmeta = funcctx->attinmeta;
+  fctx = (ConsulGetFctx*)funcctx->user_fctx;
+
+  if (call_cntr < max_calls) { // do when there is more left to send
+    char       **values;
+    HeapTuple    tuple;
+    Datum        result;
+
+    // Snag a reference to the KVPair we're going to send back
+    const auto& objs = fctx->kvps.objs();
+    const auto& kvp = objs[fctx->iter];
+    fctx->iter++;
+
+    // Prepare a values array for building the returned tuple.  This should
+    // be an array of C strings which will be processed later by the type
+    // input functions.
+    values = (char **)palloc(PG_CONSUL_KV1_GET_NUM_COLUMNS * sizeof(char *));
+    // PG_CONSUL_KV1_GET_COUMN_KEY == key (TEXT)
+    values[PG_CONSUL_KV1_GET_COUMN_KEY] = (char *)palloc(kvp.key().size() + 1);
+    kvp.key().copy(values[PG_CONSUL_KV1_GET_COUMN_KEY], kvp.key().size());
+    values[PG_CONSUL_KV1_GET_COUMN_KEY][kvp.key().size()] = '\0';
+    // PG_CONSUL_KV1_GET_COUMN_VALUE == value (BYTEA)
+    values[PG_CONSUL_KV1_GET_COUMN_VALUE] = (char *)palloc(kvp.value().size() + 1);
+    kvp.value().copy(values[PG_CONSUL_KV1_GET_COUMN_VALUE], kvp.value().size());
+    values[PG_CONSUL_KV1_GET_COUMN_VALUE][kvp.value().size()] = '\0';
+    // PG_CONSUL_KV1_GET_COUMN_FLAGS == flags (INT)
+    const auto flagsStr = kvp.flagsStr();
+    values[PG_CONSUL_KV1_GET_COUMN_FLAGS] = (char *)palloc(flagsStr.size() + 1);
+    flagsStr.copy(values[PG_CONSUL_KV1_GET_COUMN_FLAGS], flagsStr.size());
+    values[PG_CONSUL_KV1_GET_COUMN_FLAGS][flagsStr.size()] = '\0';
+    // PG_CONSUL_KV1_GET_COUMN_CREATE_IDX == create_index (INT8)
+    const auto createIndexStr = kvp.createIndexStr();
+    values[PG_CONSUL_KV1_GET_COUMN_CREATE_IDX] = (char *)palloc(createIndexStr.size() + 1);
+    createIndexStr.copy(values[PG_CONSUL_KV1_GET_COUMN_CREATE_IDX], createIndexStr.size());
+    values[PG_CONSUL_KV1_GET_COUMN_CREATE_IDX][createIndexStr.size()] = '\0';
+    // PG_CONSUL_KV1_GET_COUMN_LOCK_IDX == lock_index (INT8)
+    const auto lockIndexStr = kvp.lockIndexStr();
+    values[PG_CONSUL_KV1_GET_COUMN_LOCK_IDX] = (char *)palloc(lockIndexStr.size() + 1);
+    lockIndexStr.copy(values[PG_CONSUL_KV1_GET_COUMN_LOCK_IDX], lockIndexStr.size());
+    values[PG_CONSUL_KV1_GET_COUMN_LOCK_IDX][lockIndexStr.size()] = '\0';
+    // PG_CONSUL_KV1_GET_COUMN_MODIFY_IDX == modify_index (INT8)
+    const auto modifyIndexStr = kvp.modifyIndexStr();
+    values[PG_CONSUL_KV1_GET_COUMN_MODIFY_IDX] = (char *)palloc(modifyIndexStr.size() + 1);
+    modifyIndexStr.copy(values[PG_CONSUL_KV1_GET_COUMN_MODIFY_IDX], modifyIndexStr.size());
+    values[PG_CONSUL_KV1_GET_COUMN_MODIFY_IDX][modifyIndexStr.size()] = '\0';
+    // PG_CONSUL_KV1_GET_COUMN_SESSION == session (TEXT)
+    values[PG_CONSUL_KV1_GET_COUMN_SESSION] = (char *)palloc(kvp.session().size() + 1);
+    kvp.session().copy(values[PG_CONSUL_KV1_GET_COUMN_SESSION], kvp.session().size());
+    values[PG_CONSUL_KV1_GET_COUMN_SESSION][kvp.session().size()] = '\0';
+
+    /* build a tuple */
+    tuple = BuildTupleFromCStrings(attinmeta, values);
+
+    /* make the tuple into a datum */
+    result = HeapTupleGetDatum(tuple);
+
+    /* clean up (this is not really necessary) */
+    for (auto i = 0; i < PG_CONSUL_KV1_GET_NUM_COLUMNS; ++i) {
+      pfree(values[i]);
+    }
+
+    SRF_RETURN_NEXT(funcctx, result);
+  } else {
+    // Do when there is no more left
+    fctx->~ConsulGetFctx();
+    SRF_RETURN_DONE(funcctx);
+  }
+}
+
 
 
 /*

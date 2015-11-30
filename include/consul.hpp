@@ -2,6 +2,7 @@
 #define CONSUL_HPP
 
 #include "consul/agent.hpp"
+#include "consul/kv_pairs.hpp"
 #include "consul/peer.hpp"
 #include "consul/peers.hpp"
 

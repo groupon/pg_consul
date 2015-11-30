@@ -1,0 +1,76 @@
+-- Make sure the module is loaded.
+-- FIXME(seanc@): this is broken.  Why do I have to call the function to
+-- initialize the shared object?  Something's broken here that I don't
+-- understand yet and the oversight isn't jumping out at me.  Moving on, but
+-- marking this as a bug.
+SELECT consul_status_leader();
+ consul_status_leader 
+----------------------
+ 127.0.0.1:8300
+(1 row)
+
+-- Query values
+SELECT * FROM consul_kv_get(key := 'test');
+ key  |   value    | flags | create_index | modify_index | lock_index | session 
+------+------------+-------+--------------+--------------+------------+---------
+ test | test-value |     0 |          469 |          469 |          0 | 
+(1 row)
+
+SELECT * FROM consul_kv_get('test');
+ key  |   value    | flags | create_index | modify_index | lock_index | session 
+------+------------+-------+--------------+--------------+------------+---------
+ test | test-value |     0 |          469 |          469 |          0 | 
+(1 row)
+
+SELECT * FROM consul_kv_get(key := 'does-not-exist');
+ERROR:  consul_kv_get() returned error 404
+SELECT * FROM consul_kv_get(key := 'test', recurse := TRUE);
+    key    |    value    | flags | create_index | modify_index | lock_index | session 
+-----------+-------------+-------+--------------+--------------+------------+---------
+ test      | test-value  |     0 |          469 |          469 |          0 | 
+ test/key1 | test1-value |     0 |          470 |          470 |          0 | 
+ test/key2 | test2-value |     0 |          471 |          471 |          0 | 
+(3 rows)
+
+SELECT * FROM consul_kv_get(key := 'test', recurse := FALSE);
+ key  |   value    | flags | create_index | modify_index | lock_index | session 
+------+------------+-------+--------------+--------------+------------+---------
+ test | test-value |     0 |          469 |          469 |          0 | 
+(1 row)
+
+SELECT * FROM consul_kv_get(key := 'test', recurse := TRUE, cluster := 'pgc1');
+    key    |    value    | flags | create_index | modify_index | lock_index | session 
+-----------+-------------+-------+--------------+--------------+------------+---------
+ test      | test-value  |     0 |          469 |          469 |          0 | 
+ test/key1 | test1-value |     0 |          470 |          470 |          0 | 
+ test/key2 | test2-value |     0 |          471 |          471 |          0 | 
+(3 rows)
+
+SELECT * FROM consul_kv_get(key := 'test', recurse := TRUE, cluster := 'pgc1');
+    key    |    value    | flags | create_index | modify_index | lock_index | session 
+-----------+-------------+-------+--------------+--------------+------------+---------
+ test      | test-value  |     0 |          469 |          469 |          0 | 
+ test/key1 | test1-value |     0 |          470 |          470 |          0 | 
+ test/key2 | test2-value |     0 |          471 |          471 |          0 | 
+(3 rows)
+
+SELECT * FROM consul_kv_get(key := 'test', cluster := 'pgc1');
+ key  |   value    | flags | create_index | modify_index | lock_index | session 
+------+------------+-------+--------------+--------------+------------+---------
+ test | test-value |     0 |          469 |          469 |          0 | 
+(1 row)
+
+SELECT * FROM consul_kv_get(key := 'test', cluster := 'non-cluster');
+ERROR:  consul_kv_get() returned error 500
+SELECT * FROM consul_kv_get(key := 'test/key1');
+    key    |    value    | flags | create_index | modify_index | lock_index | session 
+-----------+-------------+-------+--------------+--------------+------------+---------
+ test/key1 | test1-value |     0 |          470 |          470 |          0 | 
+(1 row)
+
+SELECT key, value, flags, session IS NULL FROM consul_kv_get(key := 'test/key2');
+    key    |    value    | flags | ?column? 
+-----------+-------------+-------+----------
+ test/key2 | test2-value |     0 | f
+(1 row)
+
