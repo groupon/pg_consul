@@ -436,7 +436,7 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
     funcctx->attinmeta = attinmeta;
 
     // allocate memory for user context.  Use emlacement new operator.
-    fctx_p = (ConsulPeersFctx *) palloc(sizeof(ConsulPeersFctx));
+    fctx_p = (ConsulPeersFctx *)palloc(sizeof(ConsulPeersFctx));
 
     /*
      * Use fctx to keep track of peers list from call to call.  The first
@@ -525,28 +525,21 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
     // Prepare a values array for building the returned tuple.  This should
     // be an array of C strings which will be processed later by the type
     // input functions.
-    values = (char **) palloc(3 * sizeof(char *));
-    // Column 0 == hostname (TEXT)
-    values[0] = (char *) palloc(peer.host.length() + 1);
-    // Column 1 == port number (INT2)
+    values = (char **)palloc(PG_CONSUL_PEERS1_NUM_COLUMNS * sizeof(char *));
+    // PG_CONSUL_PEERS1_COLUMN_HOST == hostname (TEXT)
+    values[PG_CONSUL_PEERS1_COLUMN_HOST] = (char *)palloc(peer.host.size() + 1);
+    peer.host.copy(values[PG_CONSUL_PEERS1_COLUMN_HOST], peer.host.size());
+    values[PG_CONSUL_PEERS1_COLUMN_HOST][peer.host.size()] = '\0';
+    // PG_CONSUL_PEERS1_COLUMN_PORT == port number (INT2)
     const auto portStr = peer.portStr();
-    values[1] = (char *) palloc(portStr.size() + 1);
-    // Column 2 == leader state (BOOL)
-    values[2] = (char *) palloc(sizeof("f")); // bool as represented by a
-                                              // char.  String literals are
-                                              // null terminated.
-
-    // Set hostname
-    peer.host.copy(values[0], peer.host.size());
-    values[0][peer.host.size()] = '\0';
-
-    // Set port
-    portStr.copy(values[1], portStr.size());
-    values[1][portStr.size()] = '\0';
-
-    // Set bool
-    values[2][0] = (peer.leader ? 't' : 'f');
-    values[2][1] = '\0';
+    values[PG_CONSUL_PEERS1_COLUMN_PORT] = (char *)palloc(portStr.size() + 1);
+    portStr.copy(values[PG_CONSUL_PEERS1_COLUMN_PORT], portStr.size());
+    values[PG_CONSUL_PEERS1_COLUMN_PORT][portStr.size()] = '\0';
+    // PG_CONSUL_PEERS1_COLUMN_LEADER == leader state (BOOL).  bool as
+    // represented by a char.  String literals are null terminated.
+    values[PG_CONSUL_PEERS1_COLUMN_LEADER] = (char *)palloc(sizeof("f"));
+    values[PG_CONSUL_PEERS1_COLUMN_LEADER][0] = (peer.leader ? 't' : 'f');
+    values[PG_CONSUL_PEERS1_COLUMN_LEADER][1] = '\0';
 
     /* build a tuple */
     tuple = BuildTupleFromCStrings(attinmeta, values);
@@ -555,10 +548,9 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
     result = HeapTupleGetDatum(tuple);
 
     /* clean up (this is not really necessary) */
-    pfree(values[0]);
-    pfree(values[1]);
-    pfree(values[2]);
-    pfree(values);
+    for (auto i = 0; i < PG_CONSUL_PEERS1_NUM_COLUMNS; ++i) {
+      pfree(values[i]);
+    }
 
     SRF_RETURN_NEXT(funcctx, result);
   } else {
