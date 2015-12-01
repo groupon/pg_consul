@@ -12,7 +12,7 @@ LEAKPROOF;
 
 CREATE FUNCTION consul_status_peers(
        OUT hostname TEXT,
-       OUT port INT2,
+       OUT port INT4,
        OUT leader BOOL)
 RETURNS SETOF RECORD
 AS 'MODULE_PATHNAME', 'pg_consul_v1_status_peers'

@@ -530,7 +530,7 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
     values[PG_CONSUL_PEERS1_COLUMN_HOST] = (char *)palloc(peer.host.size() + 1);
     peer.host.copy(values[PG_CONSUL_PEERS1_COLUMN_HOST], peer.host.size());
     values[PG_CONSUL_PEERS1_COLUMN_HOST][peer.host.size()] = '\0';
-    // PG_CONSUL_PEERS1_COLUMN_PORT == port number (INT2)
+    // PG_CONSUL_PEERS1_COLUMN_PORT == port number (INT4)
     const auto portStr = peer.portStr();
     values[PG_CONSUL_PEERS1_COLUMN_PORT] = (char *)palloc(portStr.size() + 1);
     portStr.copy(values[PG_CONSUL_PEERS1_COLUMN_PORT], portStr.size());
