@@ -213,7 +213,7 @@ public:
 
   std::string json() const { return json11::Json(*this).dump(); };
   json11::Json to_json() const {
-    std::map<KeyT, ValueT> m = {
+    std::map<std::string, std::string> m = {
       { "CreateIndex", ::boost::lexical_cast<ValueT>(createIndex_) },
       { "ModifyIndex", ::boost::lexical_cast<ValueT>(modifyIndex_) },
       { "LockIndex", ::boost::lexical_cast<ValueT>(lockIndex_) },
