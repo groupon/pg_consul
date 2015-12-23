@@ -77,6 +77,8 @@ static const constexpr char PG_CONSUL_AGENT_HOSTNAME_SHORT_DESCR[] = "Sets hostn
 static const constexpr ::consul::Agent::PortT PG_CONSUL_AGENT_PORT_DEFAULT = 8500;
 static const constexpr char PG_CONSUL_AGENT_PORT_LONG_DESCR[] = "Port number of the consul agent this API client should use to talk with";
 static const constexpr char PG_CONSUL_AGENT_PORT_SHORT_DESCR[] = "Port number used by the agent for consul RPC requests.";
+static const char PG_CONSUL_AGENT_TIMEOUT_LONG_DESCR[] = "Timeout (ms) used when communicating with consul agent.";
+static const char PG_CONSUL_AGENT_TIMEOUT_SHORT_DESCR[] = "Timeout (ms) for communicating with consul agent";
 
 // -- consul_peers() SETOF column constants
 static const constexpr int PG_CONSUL_PEERS1_COLUMN_HOST   = 0;
@@ -105,12 +107,16 @@ static const constexpr int PG_CONSUL_KV1_GET_NUM_COLUMNS      = 7;
 static char* pg_consul_agent_hostname_string = NULL;
 static int pg_consul_agent_port = PG_CONSUL_AGENT_PORT_DEFAULT;
 ::consul::Agent pgConsulAgent;
+static int pg_consul_agent_timeout_ms = 0;
 
 // ---- Function declarations
 static void pg_consul_agent_hostname_assign_hook(const char *newvalue, void *extra);
 static bool pg_consul_agent_hostname_check_hook(char **newval, void **extra, GucSource source);
 static const char* pg_consul_agent_hostname_show_hook(void);
 static void pg_consul_agent_port_assign_hook(int newvalue, void *extra);
+static const char* pg_consul_agent_timeout_show_hook(void);
+static       void  pg_consul_agent_timeout_assign_hook(int newvalue, void *extra);
+static const char* pg_consul_agent_timeout_show_hook(void);
 } // anon-namespace
 
 extern "C" {
@@ -148,6 +154,18 @@ _PG_init(void)
                           pg_consul_agent_port_assign_hook,
                           nullptr
                           );
+  DefineCustomIntVariable("consul.agent_timeout",
+                          PG_CONSUL_AGENT_TIMEOUT_SHORT_DESCR,
+                          PG_CONSUL_AGENT_TIMEOUT_LONG_DESCR,
+                          &pg_consul_agent_timeout_ms,
+                          consul::Agent::DEFAULT_TIMEOUT_MS,
+                          consul::Agent::DEFAULT_TIMEOUT_MS_MIN,
+                          consul::Agent::DEFAULT_TIMEOUT_MS_MAX,
+                          PGC_USERSET,
+                          GUC_UNIT_MS | GUC_NOT_WHILE_SEC_REST,
+                          nullptr,
+                          pg_consul_agent_timeout_assign_hook,
+                          pg_consul_agent_timeout_show_hook);
 
   EmitWarningsOnPlaceholders("consul");
 }
@@ -606,6 +624,17 @@ static void
 pg_consul_agent_port_assign_hook(const int newPort, void *extra) {
   pg_consul_agent_port = static_cast<std::uint16_t>(newPort);
   pgConsulAgent.setPort(newPort);
+}
+
+static void
+pg_consul_agent_timeout_assign_hook(int newvalue, void *extra) {
+  pgConsulAgent.setTimeoutMs(newvalue);
+}
+
+
+static const char*
+pg_consul_agent_timeout_show_hook(void) {
+  return pgConsulAgent.timeoutStr().c_str();
 }
 
 } // anon-namespace

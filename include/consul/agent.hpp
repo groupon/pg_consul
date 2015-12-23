@@ -21,9 +21,15 @@ public:
   const PortT DEFAULT_PORT = 8500;
   static constexpr const char* DEFAULT_HOST = "127.0.0.1";
 
+  using TimeoutT = std::uint16_t;
+  static constexpr const TimeoutT DEFAULT_TIMEOUT_MS = 1000;
+  static constexpr const TimeoutT DEFAULT_TIMEOUT_MS_MIN = std::numeric_limits<TimeoutT>::min() + 1;
+  static constexpr const TimeoutT DEFAULT_TIMEOUT_MS_MAX = std::numeric_limits<TimeoutT>::max();
+
   ClusterT cluster() const noexcept { return cluster_; }
   HostnameT host() const noexcept { return host_; }
   PortT port() const noexcept { return port_; }
+  TimeoutT timeoutMs() const noexcept { return timeout_ms_; }
   bool leader() const noexcept { return leader_; }
 
   Agent() : host_{DEFAULT_HOST}, port_{DEFAULT_PORT} {}
@@ -114,6 +120,30 @@ public:
     std::ostringstream ss;
     ss << host_ << ":" << port_;
     return ss.str();
+  bool setTimeoutMs(const TimeoutT timeout_ms) noexcept {
+    timeout_ms_ = timeout_ms;
+    return true;
+  }
+
+  std::string timeoutMsStr() const {
+    std::string str;
+    try {
+      str = ::boost::lexical_cast<std::string>(timeout_ms_);
+    } catch (const std::exception& e) {
+      // ENOMEM, fall through
+    }
+    return str;
+  }
+
+  std::string timeoutStr() const noexcept {
+    std::string str;
+    try {
+      str = ::boost::lexical_cast<std::string>(timeout_ms_);
+    } catch(const ::boost::bad_lexical_cast &) {
+      // Grr... shouldn't happen unless ENOMEM
+      str = std::string();
+    }
+    return str;
   }
 
   bool operator==(const Agent& a) const noexcept {
@@ -128,6 +158,7 @@ private:
   }
 
   HostnameT host_ = DEFAULT_HOST;
+  TimeoutT timeout_ms_ = DEFAULT_TIMEOUT_MS;
   ClusterT cluster_;
   PortT port_ = DEFAULT_PORT;
   bool leader_ = false;
