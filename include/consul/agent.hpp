@@ -41,7 +41,7 @@ public:
   Agent(PortT port) : host_{DEFAULT_HOST}, port_{port} {}
   Agent(HostT host, PortT port) : host_{host}, port_{port} {}
 
-  UrlT kvUrl(const KVPair::KeyT& key) noexcept {
+  const UrlT kvUrl(const KVPair::KeyT& key) noexcept {
     std::string url;
     url.reserve(kvEndpointUrlPrefix().size() + key.size());
     url.assign(kvEndpointUrlPrefix());
