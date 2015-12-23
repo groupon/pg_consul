@@ -115,11 +115,12 @@ static int pg_consul_agent_timeout_ms = 0;
 static ::consul::Agent pgConsulAgent;
 
 // ---- Function declarations
-static void pg_consul_agent_port_assign_hook(int newvalue, void *extra);
 static       void  pg_consul_agent_host_assign_hook(const char *newvalue, void *extra);
 static       bool  pg_consul_agent_host_check_hook(const char *newval);
 static       bool  pg_consul_agent_host_check_hook(char **newval, void **extra, GucSource source);
 static const char* pg_consul_agent_host_show_hook(void);
+static       void  pg_consul_agent_port_assign_hook(int newvalue, void *extra);
+static const char* pg_consul_agent_port_show_hook(void);
 static const char* pg_consul_agent_timeout_show_hook(void);
 static       void  pg_consul_agent_timeout_assign_hook(int newvalue, void *extra);
 static const char* pg_consul_agent_timeout_show_hook(void);
@@ -159,8 +160,8 @@ _PG_init(void)
                           GUC_NOT_WHILE_SEC_REST,
                           nullptr,
                           pg_consul_agent_port_assign_hook,
-                          nullptr
-                          );
+                          pg_consul_agent_port_show_hook);
+
   DefineCustomIntVariable("consul.agent_timeout",
                           PG_CONSUL_AGENT_TIMEOUT_SHORT_DESCR,
                           PG_CONSUL_AGENT_TIMEOUT_LONG_DESCR,
@@ -688,6 +689,13 @@ pg_consul_agent_port_assign_hook(const int newPort, void *extra) {
   pg_consul_agent_port = static_cast<consul::Agent::PortT>(newPort); // FIXME(seanc@): Narrowing
   pgConsulAgent.setPort(newPort);
 }
+
+
+static const char*
+pg_consul_agent_port_show_hook(void) {
+  return pgConsulAgent.portStr().c_str();
+}
+
 
 static void
 pg_consul_agent_timeout_assign_hook(int newvalue, void *extra) {
