@@ -140,7 +140,7 @@ statusLeader(::consul::Agent& agent) {
   try {
     auto r = cpr::Get(cpr::Url{agent.statusLeaderUrl()},
                       cpr::Header{{"Connection", "close"}},
-                      cpr::Timeout{1000});
+                      cpr::Timeout{agent.timeoutMs()});
     if (r.status_code != 200) {
       LOG(ERROR) << "consul returned error " << r.status_code;
       return EX_TEMPFAIL;
@@ -176,7 +176,7 @@ statusPeers(::consul::Agent& agent) {
   try {
     auto r = cpr::Get(cpr::Url{agent.statusPeersUrl()},
                       cpr::Header{{"Connection", "close"}},
-                      cpr::Timeout{1000});
+                      cpr::Timeout{agent.timeoutMs()});
     if (r.status_code != 200) {
       LOG(ERROR) << "consul returned error " << r.status_code;
       return EX_TEMPFAIL;

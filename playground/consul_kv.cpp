@@ -234,7 +234,7 @@ main(int argc, char* argv[]) {
       if (methodType == MethodType::GET) {
         auto r = cpr::Get(cpr::Url{kvUrl},
                           cpr::Header{{"Connection", "close"}},
-                          cpr::Timeout{1000},
+                          cpr::Timeout{agent.timeoutMs()},
                           params);
         if (r.status_code != 200) {
           LOG(ERROR) << "consul agent returned error " << r.status_code;
@@ -279,10 +279,10 @@ main(int argc, char* argv[]) {
         }
       } else if (methodType == MethodType::DELETE) {
         auto r = cpr::Delete(cpr::Url{kvUrl},
-                          cpr::Header{{"Connection", "close"}},
-                          cpr::Timeout{1000},
-                          cpr::Payload{value},
-                          params);
+                             cpr::Header{{"Connection", "close"}},
+                             cpr::Timeout{agent.timeoutMs()},
+                             cpr::Payload{value},
+                             params);
         if (r.status_code != 200) {
           LOG(ERROR) << "consul agent returned error " << r.status_code;
           return EX_TEMPFAIL;
@@ -291,7 +291,7 @@ main(int argc, char* argv[]) {
       } else if (methodType == MethodType::PUT) {
         auto r = cpr::Put(cpr::Url{kvUrl},
                           cpr::Header{{"Connection", "close"}},
-                          cpr::Timeout{1000},
+                          cpr::Timeout{agent.timeoutMs()},
                           cpr::Payload{value},
                           params);
         if (r.status_code != 200) {
