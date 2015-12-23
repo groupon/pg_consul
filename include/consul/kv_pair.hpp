@@ -1,7 +1,6 @@
 #ifndef CONSUL_KV_PAIR_HPP
 #define CONSUL_KV_PAIR_HPP
 
-#include <iostream>
 #include <string>
 
 #include "b64/decode.hpp"

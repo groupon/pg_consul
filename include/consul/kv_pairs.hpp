@@ -1,7 +1,6 @@
 #ifndef CONSUL_KV_PAIRS_HPP
 #define CONSUL_KV_PAIRS_HPP
 
-#include <iostream>
 #include <string>
 #include <vector>
 
