@@ -5,11 +5,8 @@
 -- marking this as a bug.
 SELECT consul_agent_ping();
 
--- Set agent to localhost
-SET consul.agent_hostname = '127.0.0.1';
-
--- Make sure we only have one peer for the time being
+-- PASS: Make sure we only have one peer for the time being
 SELECT COUNT(*) FROM consul_status_peers();
 
--- Grab the current list of peers
-SELECT * FROM consul_status_peers() ORDER BY hostname;
+-- PASS: Grab the current list of peers
+SELECT * FROM consul_status_peers() ORDER BY host;

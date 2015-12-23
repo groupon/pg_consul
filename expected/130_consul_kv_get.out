@@ -74,3 +74,9 @@ SELECT key, value, flags, session IS NULL FROM consul_kv_get(key := 'test/key2')
  test/key2 | test2-value |     0 | f
 (1 row)
 
+SELECT session IS NULL AS session_is_null FROM consul_kv_get(key := 'test');
+ session_is_null 
+-----------------
+ f
+(1 row)
+
