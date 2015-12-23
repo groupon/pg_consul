@@ -3,7 +3,7 @@
 -- initialize the shared object?  Something's broken here that I don't
 -- understand yet and the oversight isn't jumping out at me.  Moving on, but
 -- marking this as a bug.
-SELECT consul_status_leader();
+SELECT consul_agent_ping();
 
 -- Set agent to localhost
 SET consul.agent_hostname = '127.0.0.1';

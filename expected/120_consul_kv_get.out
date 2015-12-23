@@ -3,10 +3,10 @@
 -- initialize the shared object?  Something's broken here that I don't
 -- understand yet and the oversight isn't jumping out at me.  Moving on, but
 -- marking this as a bug.
-SELECT consul_status_leader();
- consul_status_leader 
-----------------------
- 127.0.0.1:8300
+SELECT consul_agent_ping();
+ consul_agent_ping 
+-------------------
+ t
 (1 row)
 
 -- Query values

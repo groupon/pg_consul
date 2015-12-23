@@ -1,0 +1,66 @@
+CREATE EXTENSION pg_consul;
+ERROR:  extension "pg_consul" already exists
+-- Make sure extension parameters are present
+SELECT consul_agent_ping(); -- PASS
+ consul_agent_ping 
+-------------------
+ t
+(1 row)
+
+-- PASS: Decrease the timeout in advance of the following
+SET consul.agent_timeout = '10ms';
+-- Find the current leader
+SELECT consul_agent_ping('127.0.0.1');  -- PASS
+ consul_agent_ping 
+-------------------
+ t
+(1 row)
+
+SELECT consul_agent_ping('127.0.0.2');  -- FAIL: Doesn't exist
+ consul_agent_ping 
+-------------------
+ f
+(1 row)
+
+SELECT consul_agent_ping('127.0.0.1', 8500);  -- PASS
+ consul_agent_ping 
+-------------------
+ t
+(1 row)
+
+SELECT consul_agent_ping('127.0.0.3', 8499);  -- FAIL: Not listen(2)'ing
+ consul_agent_ping 
+-------------------
+ f
+(1 row)
+
+SELECT consul_agent_ping('127.0.0.4', 8498);  -- FAIL: Not listen(2)'ing
+ consul_agent_ping 
+-------------------
+ f
+(1 row)
+
+SELECT consul_agent_ping('127.0.0.5', 0);     -- FAIL: Invalid port
+ consul_agent_ping 
+-------------------
+ f
+(1 row)
+
+SELECT consul_agent_ping('127.0.0.6', -1);    -- FAIL: Invalid port
+ consul_agent_ping 
+-------------------
+ f
+(1 row)
+
+SELECT consul_agent_ping('127.0.0.7', 65535); -- FAIL: Not listen(2)'ing
+ consul_agent_ping 
+-------------------
+ f
+(1 row)
+
+SELECT consul_agent_ping('127.0.0.7', 65536); -- FAIL: Invalid port
+ consul_agent_ping 
+-------------------
+ f
+(1 row)
+

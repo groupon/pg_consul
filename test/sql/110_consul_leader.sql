@@ -3,24 +3,11 @@
 -- initialize the shared object?  Something's broken here that I don't
 -- understand yet and the oversight isn't jumping out at me.  Moving on, but
 -- marking this as a bug.
-SELECT consul_status_leader();
- consul_status_leader 
-----------------------
- 127.0.0.1:8300
-(1 row)
 
 -- Set hostname to localhost
 SET consul.agent_hostname = '127.0.0.1';
 SHOW consul.agent_hostname;
- consul.agent_hostname 
------------------------
- 127.0.0.1
-(1 row)
+SELECT consul_agent_ping();
 
 -- Find the current leader
 SELECT consul_status_leader();
- consul_status_leader 
-----------------------
- 127.0.0.1:8300
-(1 row)
-

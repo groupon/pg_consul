@@ -4,6 +4,18 @@
 \echo Use "CREATE EXTENSION pg_consul" to load this file. \quit
 
 -- Register functions.
+CREATE FUNCTION consul_agent_ping()
+RETURNS BOOL
+AS 'MODULE_PATHNAME', 'pg_consul_v1_agent_ping0'
+LANGUAGE C;
+
+CREATE FUNCTION consul_agent_ping(
+       IN host TEXT,
+       IN port INT4 DEFAULT 8500::INT4)
+RETURNS BOOL
+AS 'MODULE_PATHNAME', 'pg_consul_v1_agent_ping2'
+LANGUAGE C;
+
 CREATE FUNCTION consul_status_leader()
 RETURNS TEXT
 AS 'MODULE_PATHNAME', 'pg_consul_v1_status_leader'

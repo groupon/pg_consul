@@ -50,6 +50,8 @@ PG_MODULE_MAGIC;
 // ---- Exported function decls that need to be visible after the .so is dlopen()'ed.
 void _PG_init(void);
 void _PG_fini(void);
+PG_FUNCTION_INFO_V1(pg_consul_v1_agent_ping0);
+PG_FUNCTION_INFO_V1(pg_consul_v1_agent_ping2);
 PG_FUNCTION_INFO_V1(pg_consul_v1_kv_get);
 PG_FUNCTION_INFO_V1(pg_consul_v1_status_leader);
 PG_FUNCTION_INFO_V1(pg_consul_v1_status_peers);
@@ -106,8 +108,8 @@ static const constexpr int PG_CONSUL_KV1_GET_NUM_COLUMNS      = 7;
 // authoritative value is contained within pgConsulAgent.
 static char* pg_consul_agent_hostname_string = NULL;
 static int pg_consul_agent_port = PG_CONSUL_AGENT_PORT_DEFAULT;
-::consul::Agent pgConsulAgent;
 static int pg_consul_agent_timeout_ms = 0;
+static ::consul::Agent pgConsulAgent;
 
 // ---- Function declarations
 static void pg_consul_agent_hostname_assign_hook(const char *newvalue, void *extra);
@@ -178,6 +180,49 @@ void
 _PG_fini(void)
 {
   // Uninstall hooks.
+}
+
+
+Datum
+pg_consul_v1_agent_ping0(PG_FUNCTION_ARGS) {
+  try {
+    auto selfUrl = pgConsulAgent.selfUrl();
+    auto r = cpr::Get(cpr::Url{selfUrl},
+                      cpr::Header{{"Connection", "close"}},
+                      cpr::Timeout{pgConsulAgent.timeoutMs()});
+    if (r.status_code == 200) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (std::exception & e) {
+    return false;
+  }
+}
+
+
+Datum
+pg_consul_v1_agent_ping2(PG_FUNCTION_ARGS) {
+  try {
+    consul::Peer::HostT host{VARDATA(PG_GETARG_TEXT_P(0))};
+    consul::Peer::PortT port = PG_GETARG_INT32(1); // FIXME(seanc@): int32_t -> uint16_t narrowing
+    consul::Agent localAgent{host, port};
+
+    const auto selfUrl = localAgent.selfUrl();
+    const auto timeout = localAgent.timeoutMs();
+    auto r = cpr::Get(cpr::Url{selfUrl},
+                      cpr::Header{{"Connection", "close"}},
+                      cpr::Timeout{timeout});
+    if (r.status_code == 200) {
+      return true;
+    } else {
+      return false;
+    }
+
+    // Check to see if Server is true
+  } catch (std::exception & e) {
+    return false;
+  }
 }
 
 
@@ -277,7 +322,7 @@ pg_consul_v1_kv_get(PG_FUNCTION_ARGS) {
       auto kvUrl = pgConsulAgent.kvUrl(key);
       auto r = cpr::Get(cpr::Url{kvUrl},
                         cpr::Header{{"Connection", "close"}},
-                        cpr::Timeout{1000},
+                        cpr::Timeout{pgConsulAgent.timeoutMs()},
                         params);
       if (r.status_code != 200) {
         ereport(ERROR,
@@ -396,7 +441,7 @@ pg_consul_v1_status_leader(PG_FUNCTION_ARGS)
   try {
     auto r = cpr::Get(cpr::Url{pgConsulAgent.statusLeaderUrl()},
                       cpr::Header{{"Connection", "close"}},
-                      cpr::Timeout{1000});
+                      cpr::Timeout{pgConsulAgent.timeoutMs()});
     if (r.status_code != 200) {
       ereport(ERROR,
               (errcode(ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION),
@@ -475,7 +520,7 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
       // Make a call to get the current leader
       auto r = cpr::Get(cpr::Url{pgConsulAgent.statusLeaderUrl()},
                         cpr::Header{{"Connection", "close"}},
-                        cpr::Timeout{1000});
+                        cpr::Timeout{pgConsulAgent.timeoutMs()});
       if (r.status_code != 200) {
         ereport(ERROR,
                 (errcode(ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION),
@@ -492,7 +537,7 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
       // Then query the current list of peers
       r = cpr::Get(cpr::Url{pgConsulAgent.statusPeersUrl()},
                         cpr::Header{{"Connection", "close"}},
-                        cpr::Timeout{1000});
+                   cpr::Timeout{pgConsulAgent.timeoutMs()});
       if (r.status_code != 200) {
         ereport(ERROR,
                 (errcode(ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION),
