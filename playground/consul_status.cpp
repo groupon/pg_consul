@@ -73,7 +73,7 @@ main(int argc, char* argv[]) {
     TCLAP::ValueArg<consul::Agent::PortT> portArg("p", "port", "Port number of consul agent", false, agent.port(), "port");
     cmd.add(portArg);
 
-    TCLAP::ValueArg<consul::Agent::HostnameT> hostArg("H", "host", "Hostname of consul agent", false, agent.host().c_str(), "hostname");
+    TCLAP::ValueArg<consul::Agent::HostT> hostArg("H", "host", "Hostname of consul agent", false, agent.host().c_str(), "hostname");
     cmd.add(hostArg);
 
     std::vector<std::string> statusValues({"all", "leader", "peers"});

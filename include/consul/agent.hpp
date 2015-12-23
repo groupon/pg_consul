@@ -15,10 +15,10 @@ namespace consul {
 class Agent final {
 public:
   using ClusterT = std::string;
-  using HostnameT = std::string;
   using PortT = std::uint16_t;
   using UrlT = std::string;
   const PortT DEFAULT_PORT = 8500;
+  using HostT = std::string;
   static constexpr const char* DEFAULT_HOST = "127.0.0.1";
 
   using TimeoutT = std::uint16_t;
@@ -27,15 +27,15 @@ public:
   static constexpr const TimeoutT DEFAULT_TIMEOUT_MS_MAX = std::numeric_limits<TimeoutT>::max();
 
   ClusterT cluster() const noexcept { return cluster_; }
-  HostnameT host() const noexcept { return host_; }
+  HostT host() const noexcept { return host_; }
   PortT port() const noexcept { return port_; }
   TimeoutT timeoutMs() const noexcept { return timeout_ms_; }
   bool leader() const noexcept { return leader_; }
 
   Agent() : host_{DEFAULT_HOST}, port_{DEFAULT_PORT} {}
-  Agent(HostnameT host) : host_{host}, port_{DEFAULT_PORT} {}
+  Agent(HostT host) : host_{host}, port_{DEFAULT_PORT} {}
   Agent(PortT port) : host_{DEFAULT_HOST}, port_{port} {}
-  Agent(HostnameT host, PortT port) : host_{host}, port_{port} {}
+  Agent(HostT host, PortT port) : host_{host}, port_{port} {}
 
   UrlT kvUrl(const KVPair::KeyT& key) noexcept {
     std::string url;
@@ -94,7 +94,7 @@ public:
     return true;
   }
 
-  bool setHost(const HostnameT host) noexcept {
+  bool setHost(const HostT host) noexcept {
     invalidateMemoizedUrls();
     host_ = host;
     return true;
@@ -157,8 +157,8 @@ private:
     peersUrl_.clear();
   }
 
-  HostnameT host_ = DEFAULT_HOST;
   TimeoutT timeout_ms_ = DEFAULT_TIMEOUT_MS;
+  HostT host_ = DEFAULT_HOST;
   ClusterT cluster_;
   PortT port_ = DEFAULT_PORT;
   bool leader_ = false;

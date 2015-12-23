@@ -11,19 +11,19 @@
 
 namespace consul {
 struct Peer final {
-  using HostnameT = std::string;
+  using HostT = std::string;
   using PortT = std::uint16_t;
   const PortT DEFAULT_PORT = 8500;
   static constexpr const char* DEFAULT_HOST = "127.0.0.1";
 
-  HostnameT host = DEFAULT_HOST;
   PortT port = DEFAULT_PORT;
+  HostT host;
   bool leader = false;
 
   Peer() : host{DEFAULT_HOST}, port{DEFAULT_PORT} {}
-  Peer(HostnameT host_) : host{host_}, port{DEFAULT_PORT} {}
   Peer(PortT port_) : host{DEFAULT_HOST}, port{port_} {}
   Peer(HostnameT host_, PortT port_) : host{host_}, port{port_} {}
+  Peer(HostT host_, PortT port_) : host{host_}, port{port_} {}
 
   static bool InitFromJson(Peer& peer, const json11::Json& json, std::string& err) {
     if (!json.is_string()) {
@@ -116,7 +116,7 @@ struct Peer final {
     return ss.str();
   }
 
-  bool setHost(const HostnameT host_) noexcept {
+  bool setHost(const HostT host_) noexcept {
     host = host_;
     return true;
   }

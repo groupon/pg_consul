@@ -23,7 +23,7 @@ LANGUAGE C
 LEAKPROOF;
 
 CREATE FUNCTION consul_status_peers(
-       OUT hostname TEXT,
+       OUT host TEXT,
        OUT port INT4,
        OUT leader BOOL)
 RETURNS SETOF RECORD

@@ -73,14 +73,17 @@ struct ConsulPeersFctx {
 };
 
 // ---- Constants
-static const constexpr char PG_CONSUL_AGENT_HOSTNAME_DEFAULT[] = "127.0.0.1";
-static const constexpr char PG_CONSUL_AGENT_HOSTNAME_LONG_DESCR[] = "Hostname of the consul agent this API client should use to talk with";
-static const constexpr char PG_CONSUL_AGENT_HOSTNAME_SHORT_DESCR[] = "Sets hostname of the consul agent to talk to.";
 static const constexpr ::consul::Agent::PortT PG_CONSUL_AGENT_PORT_DEFAULT = 8500;
+static const constexpr char PG_CONSUL_AGENT_HOST_DEFAULT[] = "127.0.0.1";
+static const constexpr char PG_CONSUL_AGENT_HOST_LONG_DESCR[] = "Host of the consul agent this API client should use to talk with";
+static const constexpr char PG_CONSUL_AGENT_HOST_SHORT_DESCR[] = "Sets host of the consul agent to talk to.";
 static const constexpr char PG_CONSUL_AGENT_PORT_LONG_DESCR[] = "Port number of the consul agent this API client should use to talk with";
 static const constexpr char PG_CONSUL_AGENT_PORT_SHORT_DESCR[] = "Port number used by the agent for consul RPC requests.";
 static const char PG_CONSUL_AGENT_TIMEOUT_LONG_DESCR[] = "Timeout (ms) used when communicating with consul agent.";
 static const char PG_CONSUL_AGENT_TIMEOUT_SHORT_DESCR[] = "Timeout (ms) for communicating with consul agent";
+
+// RFC 1123 says names must be shorter than 255.
+static const constexpr auto RFC1123_NAME_LIMIT = 255;
 
 // -- consul_peers() SETOF column constants
 static const constexpr int PG_CONSUL_PEERS1_COLUMN_HOST   = 0;
@@ -106,16 +109,17 @@ static const constexpr int PG_CONSUL_KV1_GET_NUM_COLUMNS      = 7;
 
 // NOTE: this variable still needs to be defined even though the
 // authoritative value is contained within pgConsulAgent.
-static char* pg_consul_agent_hostname_string = NULL;
 static int pg_consul_agent_port = PG_CONSUL_AGENT_PORT_DEFAULT;
+static char* pg_consul_agent_host_string = nullptr;
 static int pg_consul_agent_timeout_ms = 0;
 static ::consul::Agent pgConsulAgent;
 
 // ---- Function declarations
-static void pg_consul_agent_hostname_assign_hook(const char *newvalue, void *extra);
-static bool pg_consul_agent_hostname_check_hook(char **newval, void **extra, GucSource source);
-static const char* pg_consul_agent_hostname_show_hook(void);
 static void pg_consul_agent_port_assign_hook(int newvalue, void *extra);
+static       void  pg_consul_agent_host_assign_hook(const char *newvalue, void *extra);
+static       bool  pg_consul_agent_host_check_hook(const char *newval);
+static       bool  pg_consul_agent_host_check_hook(char **newval, void **extra, GucSource source);
+static const char* pg_consul_agent_host_show_hook(void);
 static const char* pg_consul_agent_timeout_show_hook(void);
 static       void  pg_consul_agent_timeout_assign_hook(int newvalue, void *extra);
 static const char* pg_consul_agent_timeout_show_hook(void);
@@ -129,19 +133,20 @@ extern "C" {
 void
 _PG_init(void)
 {
-  /*
-   * Define (or redefine) custom GUC variables.
-   */
-  DefineCustomStringVariable("consul.agent_hostname",
-                             PG_CONSUL_AGENT_HOSTNAME_SHORT_DESCR,
-                             PG_CONSUL_AGENT_HOSTNAME_LONG_DESCR,
-                             &pg_consul_agent_hostname_string,
-                             PG_CONSUL_AGENT_HOSTNAME_DEFAULT,
+  // Set defaults
+  pg_consul_agent_host_string = const_cast<char*>(consul::Agent::DEFAULT_HOST);
+
+  // Define (or redefine) custom GUC variables.
+  DefineCustomStringVariable("consul.agent_host",
+                             PG_CONSUL_AGENT_HOST_SHORT_DESCR,
+                             PG_CONSUL_AGENT_HOST_LONG_DESCR,
+                             &pg_consul_agent_host_string,
+                             PG_CONSUL_AGENT_HOST_DEFAULT,
                              PGC_USERSET,
-                             GUC_LIST_INPUT,
-                             pg_consul_agent_hostname_check_hook,
-                             pg_consul_agent_hostname_assign_hook,
-                             pg_consul_agent_hostname_show_hook);
+                             GUC_NOT_WHILE_SEC_REST,
+                             pg_consul_agent_host_check_hook,
+                             pg_consul_agent_host_assign_hook,
+                             pg_consul_agent_host_show_hook);
 
   DefineCustomIntVariable("consul.agent_port",
                           PG_CONSUL_AGENT_PORT_SHORT_DESCR,
@@ -588,9 +593,9 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
     // Prepare a values array for building the returned tuple.  This should
     // be an array of C strings which will be processed later by the type
     // input functions.
-    values = (char **)palloc(PG_CONSUL_PEERS1_NUM_COLUMNS * sizeof(char *));
-    // PG_CONSUL_PEERS1_COLUMN_HOST == hostname (TEXT)
-    values[PG_CONSUL_PEERS1_COLUMN_HOST] = (char *)palloc(peer.host.size() + 1);
+    values = static_cast<char **>(palloc(PG_CONSUL_PEERS1_NUM_COLUMNS * sizeof(char *)));
+    // PG_CONSUL_PEERS1_COLUMN_HOST == host (TEXT)
+    values[PG_CONSUL_PEERS1_COLUMN_HOST] = static_cast<char *>(palloc(peer.host.size() + 1));
     peer.host.copy(values[PG_CONSUL_PEERS1_COLUMN_HOST], peer.host.size());
     values[PG_CONSUL_PEERS1_COLUMN_HOST][peer.host.size()] = '\0';
     // PG_CONSUL_PEERS1_COLUMN_PORT == port number (INT4)
@@ -628,41 +633,54 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
 namespace {
 
 static void
-pg_consul_agent_hostname_assign_hook(const char *newHostname, void *extra) {
-  pg_consul_agent_hostname_string = const_cast<char*>(newHostname); // This is pretty dumb.
-  pgConsulAgent.setHost(newHostname);
+pg_consul_agent_host_assign_hook(const char *newHost, void *extra) {
+  // FIXME(seanc@): This is pretty dumb.  By API design we're compelled to
+  // const_cast<> from const char*, but in DefineCustomStringVariable() we
+  // can't pass nullptr for either the assignment when the function pointer
+  // is not null.  If you pass a *_assign_hook() function pointer to
+  // DefineCustom*Variable(), you can only pass a char* as an argument.  It
+  // feels like I'm missing something obvious.
+  pg_consul_agent_host_string = const_cast<char*>(newHost);
+  pgConsulAgent.setHost(newHost);
 }
 
 static bool
-pg_consul_agent_hostname_check_hook(char **newHostname, void **extra, GucSource source) {
-  if (newHostname == nullptr || *newHostname == nullptr)
+pg_consul_agent_host_check_hook(char **newHost, void **extra, GucSource source) {
+  if (newHost == nullptr || *newHost == nullptr) {
     return false;
+  } else {
+    return pg_consul_agent_host_check_hook(*newHost);
+  }
+}
 
+
+static bool
+pg_consul_agent_host_check_hook(const char *newHost) {
   const auto rfc791RegexPat = u8R"regex(^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$)regex";
   const auto rfc1123RegexPat = u8R"regex(^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$)regex";
 
   std::regex rfc791Regex(rfc791RegexPat);   // IPv4
-  std::regex rfc1123Regex(rfc1123RegexPat); // Hostname
+  std::regex rfc1123Regex(rfc1123RegexPat); // Host
 
-  const std::string newHostnameStr(*newHostname);
-  if (newHostnameStr.size() > 255) {
-    // RFC 1123 says names must be shorter than 255.  Not testing to see if
-    // the length of labels are shorter than 63 bytes.
+  const std::string newHostStr(newHost);
+  if (newHostStr.size() > RFC1123_NAME_LIMIT) {
+    // Not testing to see if the length of labels are shorter than 63 bytes.
     return false;
   }
 
-  bool validIp = false, validHostname = false;
-  validIp = std::regex_match(newHostnameStr, rfc791Regex);
+  bool validIp = false, validHost = false;
+  validIp = std::regex_match(newHostStr, rfc791Regex);
   if (!validIp) {
-    validHostname = std::regex_match(newHostnameStr, rfc1123Regex);
+    validHost = std::regex_match(newHostStr, rfc1123Regex);
   }
 
-  return (validIp || validHostname);
+  return (validIp || validHost);
 }
 
 static const char*
-pg_consul_agent_hostname_show_hook(void) {
-  return pgConsulAgent.host().c_str();
+pg_consul_agent_host_show_hook(void) {
+  return pg_consul_agent_host_string;
+  //  return pgConsulAgent.host().c_str();
 }
 
 static void
