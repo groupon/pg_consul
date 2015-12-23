@@ -80,7 +80,7 @@ public:
   json11::Json to_json() const {
     std::ostringstream ss;
     ss << host_ << ":" << port_;
-    return json11::Json{ ss.str() };
+    return json11::Json{ss.str()};
   }
 
   std::string portStr() const noexcept {

@@ -629,9 +629,11 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
   }
 }
 
+
 } // extern "C"
 
 namespace {
+
 
 static void
 pg_consul_agent_host_assign_hook(const char *newHost, void *extra) {
@@ -644,6 +646,7 @@ pg_consul_agent_host_assign_hook(const char *newHost, void *extra) {
   pg_consul_agent_host_string = const_cast<char*>(newHost);
   pgConsulAgent.setHost(newHost);
 }
+
 
 static bool
 pg_consul_agent_host_check_hook(char **newHost, void **extra, GucSource source) {
@@ -678,11 +681,13 @@ pg_consul_agent_host_check_hook(const char *newHost) {
   return (validIp || validHost);
 }
 
+
 static const char*
 pg_consul_agent_host_show_hook(void) {
   return pg_consul_agent_host_string;
   //  return pgConsulAgent.host().c_str();
 }
+
 
 static void
 pg_consul_agent_port_assign_hook(const int newPort, void *extra) {

@@ -224,7 +224,7 @@ public:
       { "Value", valueEncoded() }
     };
 
-    return json11::Json{ m };
+    return json11::Json{m};
   }
 
   std::string valueEncoded() const noexcept {
