@@ -156,7 +156,7 @@ _PG_init(void)
                           consul::Agent::DEFAULT_PORT_MIN,
                           consul::Agent::DEFAULT_PORT_MAX,
                           PGC_USERSET,
-                          GUC_LIST_INPUT,
+                          GUC_NOT_WHILE_SEC_REST,
                           nullptr,
                           pg_consul_agent_port_assign_hook,
                           nullptr
