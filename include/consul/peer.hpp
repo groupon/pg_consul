@@ -11,8 +11,10 @@
 
 namespace consul {
 struct Peer final {
+private:
   using HostT = std::string;
   using PortT = std::uint16_t;
+public:
 
   HostT host;
   PortT port = 0;

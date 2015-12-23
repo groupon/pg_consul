@@ -73,10 +73,10 @@ struct ConsulPeersFctx {
 };
 
 // ---- Constants
-static const constexpr ::consul::Agent::PortT PG_CONSUL_AGENT_PORT_DEFAULT = 8500;
 static const constexpr char PG_CONSUL_AGENT_HOST_DEFAULT[] = "127.0.0.1";
 static const constexpr char PG_CONSUL_AGENT_HOST_LONG_DESCR[] = "Host of the consul agent this API client should use to talk with";
 static const constexpr char PG_CONSUL_AGENT_HOST_SHORT_DESCR[] = "Sets host of the consul agent to talk to.";
+static const constexpr consul::Agent::PortT PG_CONSUL_AGENT_PORT_DEFAULT = consul::Agent::DEFAULT_PORT;
 static const constexpr char PG_CONSUL_AGENT_PORT_LONG_DESCR[] = "Port number of the consul agent this API client should use to talk with";
 static const constexpr char PG_CONSUL_AGENT_PORT_SHORT_DESCR[] = "Port number used by the agent for consul RPC requests.";
 static const char PG_CONSUL_AGENT_TIMEOUT_LONG_DESCR[] = "Timeout (ms) used when communicating with consul agent.";
@@ -109,8 +109,8 @@ static const constexpr int PG_CONSUL_KV1_GET_NUM_COLUMNS      = 7;
 
 // NOTE: this variable still needs to be defined even though the
 // authoritative value is contained within pgConsulAgent.
-static int pg_consul_agent_port = PG_CONSUL_AGENT_PORT_DEFAULT;
 static char* pg_consul_agent_host_string = nullptr;
+static int pg_consul_agent_port = consul::Agent::DEFAULT_PORT;
 static int pg_consul_agent_timeout_ms = 0;
 static ::consul::Agent pgConsulAgent;
 
@@ -153,8 +153,8 @@ _PG_init(void)
                           PG_CONSUL_AGENT_PORT_LONG_DESCR,
                           &pg_consul_agent_port,
                           PG_CONSUL_AGENT_PORT_DEFAULT,
-                          1024,  // Min port == 1024
-                          65535, // Max port == 65536 - 1
+                          consul::Agent::DEFAULT_PORT_MIN,
+                          consul::Agent::DEFAULT_PORT_MAX,
                           PGC_USERSET,
                           GUC_LIST_INPUT,
                           nullptr,
@@ -209,8 +209,8 @@ pg_consul_v1_agent_ping0(PG_FUNCTION_ARGS) {
 Datum
 pg_consul_v1_agent_ping2(PG_FUNCTION_ARGS) {
   try {
-    consul::Peer::HostT host{VARDATA(PG_GETARG_TEXT_P(0))};
-    consul::Peer::PortT port = PG_GETARG_INT32(1); // FIXME(seanc@): int32_t -> uint16_t narrowing
+    consul::Agent::HostT host{VARDATA(PG_GETARG_TEXT_P(0))};
+    consul::Agent::PortT port = PG_GETARG_INT32(1); // FIXME(seanc@): int32_t -> uint16_t narrowing
     consul::Agent localAgent{host, port};
 
     const auto selfUrl = localAgent.selfUrl();
@@ -685,7 +685,7 @@ pg_consul_agent_host_show_hook(void) {
 
 static void
 pg_consul_agent_port_assign_hook(const int newPort, void *extra) {
-  pg_consul_agent_port = static_cast<std::uint16_t>(newPort);
+  pg_consul_agent_port = static_cast<consul::Agent::PortT>(newPort); // FIXME(seanc@): Narrowing
   pgConsulAgent.setPort(newPort);
 }
 

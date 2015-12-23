@@ -15,11 +15,15 @@ namespace consul {
 class Agent final {
 public:
   using ClusterT = std::string;
-  using PortT = std::uint16_t;
   using UrlT = std::string;
-  const PortT DEFAULT_PORT = 8500;
+
   using HostT = std::string;
   static constexpr const char* DEFAULT_HOST = "127.0.0.1";
+
+  using PortT = std::uint16_t;
+  static constexpr const PortT DEFAULT_PORT = 8500;
+  static constexpr const PortT DEFAULT_PORT_MIN = std::numeric_limits<PortT>::min() + 1;
+  static constexpr const PortT DEFAULT_PORT_MAX = std::numeric_limits<PortT>::max();
 
   using TimeoutT = std::uint16_t;
   static constexpr const TimeoutT DEFAULT_TIMEOUT_MS = 1000;
