@@ -58,20 +58,50 @@ public:
     return kvEndpointUrlPrefix_;
   }
 
-  const UrlT& statusLeaderUrl() noexcept {
-    if (leaderUrl_.empty()) {
+  const UrlT nodesUrl() noexcept {
+    if (nodesUrl_.empty()) {
       std::ostringstream url;
-      url << "http://" << host_ << ":" << port_ << "/v1/status/leader";
-      leaderUrl_ = url.str();
+      url << "http://" << host_ << ":" << port_ << "/v1/catalog/nodes";
+      nodesUrl_ = url.str();
+    }
+    return nodesUrl_;
+  }
+
+  const UrlT& selfUrl() noexcept {
+    try {
+      if (selfUrl_.empty()) {
+        std::ostringstream url;
+        url << "http://" << host_ << ":" << port_ << "/v1/agent/self";
+        selfUrl_ = url.str();
+      }
+    } catch (const std::exception& e) {
+      selfUrl_ = std::string();
+    }
+    return selfUrl_;
+  }
+
+  const UrlT& statusLeaderUrl() noexcept {
+    try {
+      if (leaderUrl_.empty()) {
+        std::ostringstream url;
+        url << "http://" << host_ << ":" << port_ << "/v1/status/leader";
+        leaderUrl_ = url.str();
+      }
+    } catch (const std::exception& e) {
+      leaderUrl_ = std::string();
     }
     return leaderUrl_;
   }
 
   const UrlT& statusPeersUrl() noexcept {
-    if (peersUrl_.empty()) {
-      std::ostringstream url;
-      url << "http://" << host_ << ":" << port_ << "/v1/status/peers";
-      peersUrl_ = url.str();
+    try {
+      if (peersUrl_.empty()) {
+        std::ostringstream url;
+        url << "http://" << host_ << ":" << port_ << "/v1/status/peers";
+        peersUrl_ = url.str();
+      }
+    } catch (const std::exception& e) {
+      peersUrl_ = std::string();
     }
     return peersUrl_;
   }
@@ -120,13 +150,19 @@ public:
     }
   }
 
-  std::string str() const {
-    std::ostringstream ss;
-    ss << host_ << ":" << port_;
-    return ss.str();
   bool setTimeoutMs(const TimeoutT timeout_ms) noexcept {
     timeout_ms_ = timeout_ms;
     return true;
+  }
+
+  std::string str() const noexcept {
+    try {
+      std::ostringstream ss;
+      ss << host_ << ":" << port_;
+      return ss.str();
+    } catch (const std::exception &e) {
+      return std::string();
+    }
   }
 
   std::string timeoutMsStr() const {
@@ -158,7 +194,9 @@ private:
   void invalidateMemoizedUrls() noexcept {
     kvEndpointUrlPrefix_.clear();
     leaderUrl_.clear();
+    nodesUrl_.clear();
     peersUrl_.clear();
+    selfUrl_.clear();
   }
 
   TimeoutT timeout_ms_ = DEFAULT_TIMEOUT_MS;
@@ -171,7 +209,9 @@ private:
   // and the URL won't change often.
   UrlT kvEndpointUrlPrefix_;
   UrlT leaderUrl_;
+  UrlT nodesUrl_;
   UrlT peersUrl_;
+  UrlT selfUrl_;
 };
 
 
