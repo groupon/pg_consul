@@ -262,7 +262,7 @@ pg_consul_v1_kv_get(PG_FUNCTION_ARGS) {
     funcctx->attinmeta = attinmeta;
 
     // allocate memory for user context.  Use emlacement new operator.
-    fctx_p = (ConsulGetFctx *)palloc(sizeof(ConsulGetFctx));
+    fctx_p = static_cast<ConsulGetFctx *>(palloc(sizeof(ConsulGetFctx)));
 
     /*
      * Use fctx to keep track of KVPair entries from call to call.  The first
@@ -365,7 +365,7 @@ pg_consul_v1_kv_get(PG_FUNCTION_ARGS) {
   call_cntr = funcctx->call_cntr;
   max_calls = funcctx->max_calls;
   attinmeta = funcctx->attinmeta;
-  fctx = (ConsulGetFctx*)funcctx->user_fctx;
+  fctx = static_cast<ConsulGetFctx*>(funcctx->user_fctx);
 
   if (call_cntr < max_calls) { // do when there is more left to send
     char       **values;
@@ -380,37 +380,37 @@ pg_consul_v1_kv_get(PG_FUNCTION_ARGS) {
     // Prepare a values array for building the returned tuple.  This should
     // be an array of C strings which will be processed later by the type
     // input functions.
-    values = (char **)palloc(PG_CONSUL_KV1_GET_NUM_COLUMNS * sizeof(char *));
+    values = static_cast<char **>(palloc(PG_CONSUL_KV1_GET_NUM_COLUMNS * sizeof(char *)));
     // PG_CONSUL_KV1_GET_COUMN_KEY == key (TEXT)
-    values[PG_CONSUL_KV1_GET_COUMN_KEY] = (char *)palloc(kvp.key().size() + 1);
+    values[PG_CONSUL_KV1_GET_COUMN_KEY] = static_cast<char *>(palloc(kvp.key().size() + 1));
     kvp.key().copy(values[PG_CONSUL_KV1_GET_COUMN_KEY], kvp.key().size());
     values[PG_CONSUL_KV1_GET_COUMN_KEY][kvp.key().size()] = '\0';
     // PG_CONSUL_KV1_GET_COUMN_VALUE == value (BYTEA)
-    values[PG_CONSUL_KV1_GET_COUMN_VALUE] = (char *)palloc(kvp.value().size() + 1);
+    values[PG_CONSUL_KV1_GET_COUMN_VALUE] = static_cast<char *>(palloc(kvp.value().size() + 1));
     kvp.value().copy(values[PG_CONSUL_KV1_GET_COUMN_VALUE], kvp.value().size());
     values[PG_CONSUL_KV1_GET_COUMN_VALUE][kvp.value().size()] = '\0';
     // PG_CONSUL_KV1_GET_COUMN_FLAGS == flags (INT)
     const auto flagsStr = kvp.flagsStr();
-    values[PG_CONSUL_KV1_GET_COUMN_FLAGS] = (char *)palloc(flagsStr.size() + 1);
+    values[PG_CONSUL_KV1_GET_COUMN_FLAGS] = static_cast<char *>(palloc(flagsStr.size() + 1));
     flagsStr.copy(values[PG_CONSUL_KV1_GET_COUMN_FLAGS], flagsStr.size());
     values[PG_CONSUL_KV1_GET_COUMN_FLAGS][flagsStr.size()] = '\0';
     // PG_CONSUL_KV1_GET_COUMN_CREATE_IDX == create_index (INT8)
     const auto createIndexStr = kvp.createIndexStr();
-    values[PG_CONSUL_KV1_GET_COUMN_CREATE_IDX] = (char *)palloc(createIndexStr.size() + 1);
+    values[PG_CONSUL_KV1_GET_COUMN_CREATE_IDX] = static_cast<char *>(palloc(createIndexStr.size() + 1));
     createIndexStr.copy(values[PG_CONSUL_KV1_GET_COUMN_CREATE_IDX], createIndexStr.size());
     values[PG_CONSUL_KV1_GET_COUMN_CREATE_IDX][createIndexStr.size()] = '\0';
     // PG_CONSUL_KV1_GET_COUMN_LOCK_IDX == lock_index (INT8)
     const auto lockIndexStr = kvp.lockIndexStr();
-    values[PG_CONSUL_KV1_GET_COUMN_LOCK_IDX] = (char *)palloc(lockIndexStr.size() + 1);
+    values[PG_CONSUL_KV1_GET_COUMN_LOCK_IDX] = static_cast<char *>(palloc(lockIndexStr.size() + 1));
     lockIndexStr.copy(values[PG_CONSUL_KV1_GET_COUMN_LOCK_IDX], lockIndexStr.size());
     values[PG_CONSUL_KV1_GET_COUMN_LOCK_IDX][lockIndexStr.size()] = '\0';
     // PG_CONSUL_KV1_GET_COUMN_MODIFY_IDX == modify_index (INT8)
     const auto modifyIndexStr = kvp.modifyIndexStr();
-    values[PG_CONSUL_KV1_GET_COUMN_MODIFY_IDX] = (char *)palloc(modifyIndexStr.size() + 1);
+    values[PG_CONSUL_KV1_GET_COUMN_MODIFY_IDX] = static_cast<char *>(palloc(modifyIndexStr.size() + 1));
     modifyIndexStr.copy(values[PG_CONSUL_KV1_GET_COUMN_MODIFY_IDX], modifyIndexStr.size());
     values[PG_CONSUL_KV1_GET_COUMN_MODIFY_IDX][modifyIndexStr.size()] = '\0';
     // PG_CONSUL_KV1_GET_COUMN_SESSION == session (TEXT)
-    values[PG_CONSUL_KV1_GET_COUMN_SESSION] = (char *)palloc(kvp.session().size() + 1);
+    values[PG_CONSUL_KV1_GET_COUMN_SESSION] = static_cast<char *>(palloc(kvp.session().size() + 1));
     kvp.session().copy(values[PG_CONSUL_KV1_GET_COUMN_SESSION], kvp.session().size());
     values[PG_CONSUL_KV1_GET_COUMN_SESSION][kvp.session().size()] = '\0';
 
@@ -504,7 +504,7 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
     funcctx->attinmeta = attinmeta;
 
     // allocate memory for user context.  Use emlacement new operator.
-    fctx_p = (ConsulPeersFctx *)palloc(sizeof(ConsulPeersFctx));
+    fctx_p = static_cast<ConsulPeersFctx *>(palloc(sizeof(ConsulPeersFctx)));
 
     /*
      * Use fctx to keep track of peers list from call to call.  The first
@@ -579,7 +579,7 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
   call_cntr = funcctx->call_cntr;
   max_calls = funcctx->max_calls;
   attinmeta = funcctx->attinmeta;
-  fctx = (ConsulPeersFctx*)funcctx->user_fctx;
+  fctx = static_cast<ConsulPeersFctx*>(funcctx->user_fctx);
 
   if (call_cntr < max_calls) { // do when there is more left to send
     char       **values;
@@ -600,12 +600,12 @@ pg_consul_v1_status_peers(PG_FUNCTION_ARGS) {
     values[PG_CONSUL_PEERS1_COLUMN_HOST][peer.host.size()] = '\0';
     // PG_CONSUL_PEERS1_COLUMN_PORT == port number (INT4)
     const auto portStr = peer.portStr();
-    values[PG_CONSUL_PEERS1_COLUMN_PORT] = (char *)palloc(portStr.size() + 1);
+    values[PG_CONSUL_PEERS1_COLUMN_PORT] = static_cast<char *>(palloc(portStr.size() + 1));
     portStr.copy(values[PG_CONSUL_PEERS1_COLUMN_PORT], portStr.size());
     values[PG_CONSUL_PEERS1_COLUMN_PORT][portStr.size()] = '\0';
     // PG_CONSUL_PEERS1_COLUMN_LEADER == leader state (BOOL).  bool as
     // represented by a char.  String literals are null terminated.
-    values[PG_CONSUL_PEERS1_COLUMN_LEADER] = (char *)palloc(sizeof("f"));
+    values[PG_CONSUL_PEERS1_COLUMN_LEADER] = static_cast<char *>(palloc(sizeof("f")));
     values[PG_CONSUL_PEERS1_COLUMN_LEADER][0] = (peer.leader ? 't' : 'f');
     values[PG_CONSUL_PEERS1_COLUMN_LEADER][1] = '\0';
 
